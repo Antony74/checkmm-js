@@ -1,0 +1,21 @@
+{
+  "name": "checkmm-js",
+  "version": "1.0.0",
+  "description": "A port of checkmm from C++ to TypeScript",
+  "repository": "https://github.com/Antony74/checkmm-js.git",
+  "author": "Antony <akb@akb.me.uk>",
+  "license": "CC0-1.0",
+  "dependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.12.12",
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0",
+    "tslint": "^5.11.0",
+    "typescript": "^3.2.2"
+  },
+  "scripts": {
+    "lint": "tslint test/*.ts",
+    "test": "tsc test/test.ts && mocha test/test.js"
+  }
+}
