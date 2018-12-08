@@ -16,6 +16,6 @@
   },
   "scripts": {
     "lint": "tslint test/*.ts",
-    "test": "tsc test/test.ts && mocha test/test.js"
+    "test": "tsc test/test.ts && mocha --delay test/test.js"
   }
 }
