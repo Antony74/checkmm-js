@@ -15,7 +15,9 @@
     "typescript": "^3.2.2"
   },
   "scripts": {
-    "lint": "tslint test/*.ts",
+    "tsc": "tsc",
+    "lint": "tslint test/*.ts src/*.ts",
+    "start": "tsc --lib es2015 src/checkmm.ts && node src/checkmm.js",
     "test": "tsc test/test.ts && mocha --delay test/test.js"
   }
 }
