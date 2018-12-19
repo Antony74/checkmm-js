@@ -38,12 +38,11 @@ function parseFilename(filename: string): ParsedFilename {
 
 }
 
-const pathToTests = __dirname + '/../../metamath-test';
+const pathToTests = __dirname + '/../node_modules/metamath-test';
 
 fs.readdir(pathToTests, (err: NodeJS.ErrnoException, files: string[]) => {
   if (err) {
-    console.error('Expected to find directory "metamath-test" in the same parent directory as "checkmm-js"');
-    console.error('git clone https://github.com/david-a-wheeler/metamath-test.git');
+    console.log(err.message);
     process.exit(1);
   } else {
     describe('metamath-test', () => {

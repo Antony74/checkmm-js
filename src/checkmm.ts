@@ -33,6 +33,25 @@
 // Please let me know of any bugs.
 // https://github.com/Antony74/checkmm-js/issues
 
+import * as fs from 'fs';
+
+export const std = {
+  isupper: (s: string): boolean => {
+    if ( /[^A-Z]/.test(s)) {
+      return false;
+    } else {
+      return true;
+    }
+  },
+  isalnum: (s: string): boolean => {
+    if ( /[^a-zA-Z0-9]/.test(s)) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+};
+
 const tokens: string[] = [];
 
 const constants: string[] = [];
@@ -84,8 +103,8 @@ function labelused(label: string): boolean {
 // Find active floating hypothesis corresponding to variable, or empty string
 // if there isn't one.
 function getfloatinghyp(variable: string): string {
-  for (let n = 0; n < scopes.length; ++n) {
-    const loc: string = scopes[n].floatinghyp[variable];
+  for (let nScope = 0; nScope < scopes.length; ++nScope) {
+    const loc: string = scopes[nScope].floatinghyp[variable];
     if (loc !== undefined) {
       return loc;
     }
@@ -95,8 +114,8 @@ function getfloatinghyp(variable: string): string {
 }
 
 function isactivevariable(str: string): boolean {
-  for (let n = 0; n < scopes.length; ++n) {
-    if (scopes[n].activevariables[str] !== undefined) {
+  for (let nScope = 0; nScope < scopes.length; ++nScope) {
+    if (scopes[nScope].activevariables[str] !== undefined) {
       return true;
     }
   }
@@ -104,11 +123,97 @@ function isactivevariable(str: string): boolean {
 }
 
 function isactivehyp(str: string): boolean {
-  for (let n = 0; n < scopes.length; ++n) {
-    if (scopes[n].activehyp[str] !== undefined) {
+  for (let nScope = 0; nScope < scopes.length; ++nScope) {
+    if (scopes[nScope].activehyp.find((value) => value === str) !== undefined) {
       return true;
     }
   }
   return false;
 }
 
+// Determine if there is an active disjoint variable restriction on
+// two different variables.
+function isdvr(var1: string, var2: string) {
+  if (var1 === var2) {
+    return false;
+  }
+  for (let nScope = 0; nScope < scopes.length; ++nScope) {
+    const scope = scopes[nScope];
+    for (let nDisjvar = 0; nDisjvar !== scope.disjvars.length; ++nDisjvar) {
+      const disjvar = scope.disjvars[nDisjvar];
+      if (disjvar[var1] !== undefined
+      &&  disjvar[var2] !== undefined) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Determine if a character is white space in Metamath.
+function ismmws(ch: string): boolean {
+  // This doesn't include \v ("vertical tab"), as the spec omits it.
+  return ch === ' ' || ch === '\n' || ch === '\t' || ch === '\f' || ch === '\r';
+}
+
+// Determine if a token is a label token.
+function islabeltoken(token: string): boolean {
+  for (let nCh = 0; nCh < token.length; ++nCh) {
+    const ch = token[nCh];
+    if (!std.isalnum(ch) || ch === '.' || ch === '-' || ch === '_') {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Determine if a token is a math symbol token.
+function ismathsymboltoken(token: string): boolean {
+  return token.indexOf('$') !== -1;
+}
+
+// Determine if a token consists solely of upper-case letters or question marks
+function containsonlyupperorq(token: string): boolean {
+  for (let nCh = 0; nCh < token.length; ++nCh) {
+    const ch = token[nCh];
+    if (!std.isupper(ch) && ch !== '?') {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+function nexttoken(fdInput: number): string {
+    const ch: string = ' ';
+    const token: string;
+
+    while (ismmws(ch)) {
+      fs.read(fdInput,
+    }
+
+    // Skip whitespace
+    while (input.get(ch) && ismmws(ch)) { }
+    if (input.good())
+        input.unget();
+
+    // Get token
+    while (input.get(ch) && !ismmws(ch))
+    {
+        if (ch < '!' || ch > '~')
+        {
+            std::cerr << "Invalid character read with code 0x";
+            std::cerr << std::hex << (unsigned int)(unsigned char)ch
+                      << std::endl;
+            return std::string();
+        }
+
+        token += ch;
+    }
+
+    if (!input.eof() && input.fail())
+        return std::string();
+
+    return token;
+}
+*/
