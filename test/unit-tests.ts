@@ -1,5 +1,8 @@
 import {expect} from 'chai';
+import * as stream from 'stream';
+
 import * as checkmm from '../src/checkmm';
+import * as fs from 'fs';
 
 describe('checkmm-js', () => {
 
@@ -51,6 +54,15 @@ describe('checkmm-js', () => {
 
     expect(checkmm.getfloatinghyp('hello')).to.equal('world');
     expect(checkmm.getfloatinghyp('other')).to.equal('');
+  });
+
+  it('can get the next token', (done) => {
+    fs.writeFileSync('test.txt', 'hello world');
+    const input: fs.ReadStream = fs.createReadStream('test.txt', {encoding: 'utf8'});
+    setTimeout(() => {
+      expect(checkmm.nexttoken(input)).to.equal('hello');
+      done();
+    }, 20);
   });
 
 });

@@ -200,37 +200,38 @@ export function containsonlyupperorq(token: string): boolean {
   return true;
 }
 
-/*
-function nexttoken(fdInput: number): string {
-    const ch: string = ' ';
-    const token: string;
-
-    while (ismmws(ch)) {
-      fs.read(fdInput,
-    }
+export function nexttoken(input: fs.ReadStream): string {
+    let ch: string = null;
+    let token: string = '';
 
     // Skip whitespace
-    while (input.get(ch) && ismmws(ch)) { }
-    if (input.good())
-        input.unget();
-
-    // Get token
-    while (input.get(ch) && !ismmws(ch))
-    {
-        if (ch < '!' || ch > '~')
-        {
-            std::cerr << "Invalid character read with code 0x";
-            std::cerr << std::hex << (unsigned int)(unsigned char)ch
-                      << std::endl;
-            return std::string();
-        }
-
-        token += ch;
+    while (true) {
+      ch = input.read(1) as string;
+      if (ch === null || !ismmws(ch)) {
+        break;
+      }
     }
 
-    if (!input.eof() && input.fail())
-        return std::string();
+    if (ch !== null) {
+      input.unshift(ch);
+    }
+
+    // Get token
+    while (true) {
+      ch = input.read(1) as string;
+
+      if (ch === null || ismmws(ch)) {
+        break;
+      }
+
+      if (ch < '!' || ch > '~') {
+        console.error('Invalid character read with code ' + ch.charCodeAt(0));
+        return '';
+      }
+
+      token += ch;
+    }
 
     return token;
 }
-*/
+
