@@ -1,9 +1,7 @@
 import {expect} from 'chai';
 const streamMock = require('stream-mock');
-import * as fs from 'fs';
 
 import * as checkmm from '../src/checkmm';
-
 
 describe('checkmm-js', () => {
 
@@ -58,14 +56,23 @@ describe('checkmm-js', () => {
   });
 
   it('can get the next token', () => {
+
+    const old = console.error;
+    let errors = 0;
+    console.error = () => ++errors;
+
     const hw = new streamMock.ReadableMock('hello world', {encoding: 'utf8'});
     expect(checkmm.nexttoken(hw)).to.equal('hello');
     expect(checkmm.nexttoken(hw)).to.equal('world');
     expect(checkmm.nexttoken(hw)).to.equal('');
     expect(checkmm.nexttoken(hw)).to.equal('');
+    expect(errors).to.equal(0);
 
     const invalid = new streamMock.ReadableMock(String.fromCharCode(127), {encoding: 'utf8'});
     expect(checkmm.nexttoken(invalid)).to.equal('');
+    expect(errors).to.equal(1);
+
+    console.error = old;
   });
 
 });
