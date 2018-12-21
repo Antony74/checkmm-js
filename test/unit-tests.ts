@@ -1,8 +1,9 @@
 import {expect} from 'chai';
-import * as stream from 'stream';
+const streamMock = require('stream-mock');
+import * as fs from 'fs';
 
 import * as checkmm from '../src/checkmm';
-import * as fs from 'fs';
+
 
 describe('checkmm-js', () => {
 
@@ -56,13 +57,15 @@ describe('checkmm-js', () => {
     expect(checkmm.getfloatinghyp('other')).to.equal('');
   });
 
-  it('can get the next token', (done) => {
-    fs.writeFileSync('test.txt', 'hello world');
-    const input: fs.ReadStream = fs.createReadStream('test.txt', {encoding: 'utf8'});
-    setTimeout(() => {
-      expect(checkmm.nexttoken(input)).to.equal('hello');
-      done();
-    }, 20);
+  it('can get the next token', () => {
+    const hw = new streamMock.ReadableMock('hello world', {encoding: 'utf8'});
+    expect(checkmm.nexttoken(hw)).to.equal('hello');
+    expect(checkmm.nexttoken(hw)).to.equal('world');
+    expect(checkmm.nexttoken(hw)).to.equal('');
+    expect(checkmm.nexttoken(hw)).to.equal('');
+
+    const invalid = new streamMock.ReadableMock(String.fromCharCode(127), {encoding: 'utf8'});
+    expect(checkmm.nexttoken(invalid)).to.equal('');
   });
 
 });

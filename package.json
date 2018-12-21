@@ -12,11 +12,12 @@
     "chai": "^4.2.0",
     "mocha": "^5.2.0",
     "napa": "^3.0.0",
+    "stream-mock": "^1.2.0",
     "tslint": "^5.11.0",
     "typescript": "^3.2.2"
   },
   "scripts": {
-    "install": "napa david-a-wheeler/metamath-test", 
+    "install": "napa david-a-wheeler/metamath-test",
     "lint": "tslint test/*.ts src/*.ts",
     "regression-tests": "tsc && mocha --delay test/regression-tests.js",
     "start": "tsc && node src/checkmm.js",
