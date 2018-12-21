@@ -52,7 +52,7 @@ export const std = {
   }
 };
 
-const tokens: string[] = [];
+let tokens: string[] = [];
 
 const constants: string[] = [];
 
@@ -65,7 +65,7 @@ class Hypothesis {
   second: boolean;
 }
 
-const hypotheses: {[token: string]: Hypothesis} = {};
+let hypotheses: {[token: string]: Hypothesis} = {};
 
 const variables: {[token: string]: null} = {};
 
@@ -79,7 +79,7 @@ class Assertion {
     expression: Expression = [];
 }
 
-const assertions: {[token: string]: Assertion} = {};
+let assertions: {[token: string]: Assertion} = {};
 
 class Scope {
   activevariables: {[token: string]: null};
@@ -90,19 +90,36 @@ class Scope {
   floatinghyp: {[token: string]: string} = {};
 }
 
-const scopes: Scope[] = [];
+let scopes: Scope[] = [];
+
+interface TestValues {
+  tokens?: string[];
+  hypotheses?: {[token: string]: Hypothesis};
+  assertions?: {[token: string]: Assertion};
+  scopes?: Scope[];
+}
+
+export function initTestValues(values: TestValues) {
+  ({tokens, hypotheses, assertions, scopes} = {
+    tokens: [],
+    hypotheses: {},
+    assertions: {},
+    scopes: [],
+    ...values
+  });
+}
 
 const nProofCount: number = 0;
 const nProofLimit: number = Number.MAX_SAFE_INTEGER;
 
 // Determine if a string is used as a label
-function labelused(label: string): boolean {
+export function labelused(label: string): boolean {
   return (hypotheses[label] || assertions[label]) ? true : false;
 }
 
 // Find active floating hypothesis corresponding to variable, or empty string
 // if there isn't one.
-function getfloatinghyp(variable: string): string {
+export function getfloatinghyp(variable: string): string {
   for (let nScope = 0; nScope < scopes.length; ++nScope) {
     const loc: string = scopes[nScope].floatinghyp[variable];
     if (loc !== undefined) {
@@ -113,7 +130,7 @@ function getfloatinghyp(variable: string): string {
   return '';
 }
 
-function isactivevariable(str: string): boolean {
+export function isactivevariable(str: string): boolean {
   for (let nScope = 0; nScope < scopes.length; ++nScope) {
     if (scopes[nScope].activevariables[str] !== undefined) {
       return true;
@@ -122,7 +139,7 @@ function isactivevariable(str: string): boolean {
   return false;
 }
 
-function isactivehyp(str: string): boolean {
+export function isactivehyp(str: string): boolean {
   for (let nScope = 0; nScope < scopes.length; ++nScope) {
     if (scopes[nScope].activehyp.find((value) => value === str) !== undefined) {
       return true;
@@ -133,7 +150,7 @@ function isactivehyp(str: string): boolean {
 
 // Determine if there is an active disjoint variable restriction on
 // two different variables.
-function isdvr(var1: string, var2: string) {
+export function isdvr(var1: string, var2: string) {
   if (var1 === var2) {
     return false;
   }
@@ -151,13 +168,13 @@ function isdvr(var1: string, var2: string) {
 }
 
 // Determine if a character is white space in Metamath.
-function ismmws(ch: string): boolean {
+export function ismmws(ch: string): boolean {
   // This doesn't include \v ("vertical tab"), as the spec omits it.
   return ch === ' ' || ch === '\n' || ch === '\t' || ch === '\f' || ch === '\r';
 }
 
 // Determine if a token is a label token.
-function islabeltoken(token: string): boolean {
+export function islabeltoken(token: string): boolean {
   for (let nCh = 0; nCh < token.length; ++nCh) {
     const ch = token[nCh];
     if (!std.isalnum(ch) || ch === '.' || ch === '-' || ch === '_') {
@@ -168,12 +185,12 @@ function islabeltoken(token: string): boolean {
 }
 
 // Determine if a token is a math symbol token.
-function ismathsymboltoken(token: string): boolean {
+export function ismathsymboltoken(token: string): boolean {
   return token.indexOf('$') !== -1;
 }
 
 // Determine if a token consists solely of upper-case letters or question marks
-function containsonlyupperorq(token: string): boolean {
+export function containsonlyupperorq(token: string): boolean {
   for (let nCh = 0; nCh < token.length; ++nCh) {
     const ch = token[nCh];
     if (!std.isupper(ch) && ch !== '?') {
