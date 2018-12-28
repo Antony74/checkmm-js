@@ -90,22 +90,22 @@ class Hypothesis {
 
 let hypotheses: {[token: string]: Hypothesis} = {};
 
-const variables: {[token: string]: null} = {};
+const variables: Set<string> = new Set<string>();
 
 // An axiom or a theorem.
 class Assertion {
-    // Hypotheses of this axiom or theorem.
-    hypotheses: string[] = [];
-    disjvars: {[token: string]: [string, string]} = {};
+  // Hypotheses of this axiom or theorem.
+  hypotheses: string[] = [];
+  disjvars: Set<[string, string]> = new Set<[string, string]>();
 
-    // Statement of axiom or theorem.
-    expression: Expression = [];
+  // Statement of axiom or theorem.
+  expression: Expression = [];
 }
 
 let assertions: {[token: string]: Assertion} = {};
 
 class Scope {
-  activevariables: {[token: string]: null};
+  activevariables: Set<string> = new Set<string>();
   // Labels of active hypotheses
   activehyp: string[] = [];
   disjvars: {[token: string]: void}[] = [];
@@ -155,7 +155,7 @@ export function getfloatinghyp(variable: string): string {
 
 export function isactivevariable(str: string): boolean {
   for (let nScope = 0; nScope < scopes.length; ++nScope) {
-    if (scopes[nScope].activevariables[str] !== undefined) {
+    if (scopes[nScope].activevariables.has(str)) {
       return true;
     }
   }
@@ -224,49 +224,49 @@ export function containsonlyupperorq(token: string): boolean {
 }
 
 export function nexttoken(input: Stream): string {
-    let ch: string = null;
-    let token: string = '';
+  let ch: string = null;
+  let token: string = '';
 
-    // Skip whitespace
-    while (true) {
-      ch = input.get();
-      if (ch === null || !ismmws(ch)) {
-        break;
-      }
+  // Skip whitespace
+  while (true) {
+    ch = input.get();
+    if (ch === null || !ismmws(ch)) {
+      break;
+    }
+  }
+
+  if (ch !== null) {
+    input.unget(ch);
+  }
+
+  // Get token
+  while (true) {
+    ch = input.get();
+
+    if (ch === null || ismmws(ch)) {
+      break;
     }
 
-    if (ch !== null) {
-      input.unget(ch);
+    if (ch < '!' || ch > '~') {
+      console.error('Invalid character read with code ' + ch.charCodeAt(0));
+      return '';
     }
 
-    // Get token
-    while (true) {
-      ch = input.get();
+    token += ch;
+  }
 
-      if (ch === null || ismmws(ch)) {
-        break;
-      }
-
-      if (ch < '!' || ch > '~') {
-        console.error('Invalid character read with code ' + ch.charCodeAt(0));
-        return '';
-      }
-
-      token += ch;
-    }
-
-    return token;
+  return token;
 }
 
-const names: {[name: string]: null} = {};
+const names: Set<string> = new Set<string>();
 
 export function readtokens(filename: string): boolean {
-  const alreadyencountered: boolean = (names[filename] === null);
+  const alreadyencountered: boolean = names.has(filename);
   if (alreadyencountered) {
     return true;
   }
 
-  names[filename] = null;
+  names.add(filename);
 
   const fin = new Stream(filename);
 
@@ -346,4 +346,84 @@ export function readtokens(filename: string): boolean {
 
   return true;
 }
+
+// Construct an Assertion from an Expression. That is, determine the
+// mandatory hypotheses and disjoint variable restrictions.
+// The Assertion is inserted into the assertions collection,
+// and is returned.
+export function constructassertion(label: string, exp: Expression): Assertion {
+  const assertion: Assertion = new Assertion();
+
+  assertion.expression = exp;
+
+  const varsused: Set<string> = new Set<string>();
+
+  // Determine variables used and find mandatory hypotheses
+
+  for (let n = 0; n < exp.length; ++n) {
+    const variable = exp[n];
+    if (variables.has(variable)) {
+      varsused.add(variable);
+    }
+  }
+
+  for (let nScope = scopes.length - 1; nScope > 0; --nScope) {
+    const hypvec: string[] = scopes[nScope].activehyp;
+    for (let n = hypvec.length - 1; n > 0; --n) {
+      const hyp: Hypothesis = hypotheses[hypvec[n]];
+      if (hyp && varsused.has(hyp.first[1])) {
+        // Mandatory floating hypothesis
+        assertion.hypotheses.unshift(hypvec[n]);
+      } else if (hyp.second) {
+        // Essential hypothesis
+        assertion.hypotheses.unshift(hypvec[n]);
+        for (let nExpression = 0; nExpression < hyp.first.length; ++nExpression) {
+          if (variables.has(hyp.first[nExpression]) === null) {
+            varsused.add(hyp.first[nExpression]);
+          }
+        }
+      }
+    }
+  }
+
+  // Determine mandatory disjoint variable restrictions
+  /*
+  for (let nScope = 0; nScope < scopes.length; ++nScope) {
+    const disjvars: {[token: string]: void}[] = scopes[nScope].disjvars;
+    for (let nDisjvars = 0; nDisjvars < disjvars.length; ++ nDisjvars) {
+      const dset: string[] = Object.keys(std.setIntersection(disjvars, varsused));
+
+      for (let n = 0; n < dset.length; ++n) {
+        for (let n2 = n + 1; n < dset.length; ++n2) {
+          assertion.disjvars.add([dset[n], dset[n2]]);
+        }
+      }
+    }
+  }
+*/
+  assertions[label] = assertion;
+  return assertion;
+}
+
+/*
+            std::set<std::string> dset;
+            std::set_intersection
+                 (iter2->begin(), iter2->end(),
+                  varsused.begin(), varsused.end(),
+                  std::inserter(dset, dset.end()));
+
+            for (std::set<std::string>::const_iterator diter(dset.begin());
+                 diter != dset.end(); ++diter)
+            {
+                std::set<std::string>::const_iterator diter2(diter);
+                ++diter2;
+                for (; diter2 != dset.end(); ++diter2)
+                    assertion.disjvars.insert(std::make_pair(*diter, *diter2));
+            }
+        }
+    }
+
+    return assertion;
+}
+*/
 

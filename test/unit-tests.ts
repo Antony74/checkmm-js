@@ -26,7 +26,7 @@ describe('checkmm-js', () => {
       assertions: {
         world: {
           hypotheses: [],
-          disjvars: {},
+          disjvars: new Set<[string, string]>(),
           expression: []
         }
       }
@@ -41,7 +41,7 @@ describe('checkmm-js', () => {
     checkmm.initTestValues({
       scopes: [
         {
-          activevariables: {},
+          activevariables: new Set<string>(),
           activehyp: [],
           disjvars: [],
           floatinghyp: {
@@ -78,6 +78,7 @@ describe('checkmm-js', () => {
   });
 
   it('can read tokens', () => {
+    checkmm.initTestValues({});
     const okay: boolean = checkmm.readtokens(__dirname + '/../node_modules/metamath-test/anatomy.mm');
     expect(okay).to.equal(true);
     expect(checkmm.tokens.length).to.equal(60);
