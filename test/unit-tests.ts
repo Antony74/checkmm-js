@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-const streamMock = require('stream-mock');
+import * as fs from 'fs';
 
 import * as checkmm from '../src/checkmm';
 
@@ -61,18 +61,26 @@ describe('checkmm-js', () => {
     let errors = 0;
     console.error = () => ++errors;
 
-    const hw = new streamMock.ReadableMock('hello world', {encoding: 'utf8'});
+    fs.writeFileSync('test.txt', 'hello world', {encoding: 'utf8'});
+    const hw: checkmm.Stream = new checkmm.Stream('test.txt');
     expect(checkmm.nexttoken(hw)).to.equal('hello');
     expect(checkmm.nexttoken(hw)).to.equal('world');
     expect(checkmm.nexttoken(hw)).to.equal('');
     expect(checkmm.nexttoken(hw)).to.equal('');
     expect(errors).to.equal(0);
 
-    const invalid = new streamMock.ReadableMock(String.fromCharCode(127), {encoding: 'utf8'});
+    fs.writeFileSync('test.txt', String.fromCharCode(127), {encoding: 'utf8'});
+    const invalid: checkmm.Stream = new checkmm.Stream('test.txt');
     expect(checkmm.nexttoken(invalid)).to.equal('');
     expect(errors).to.equal(1);
 
     console.error = old;
+  });
+
+  it('can read tokens', () => {
+    const okay: boolean = checkmm.readtokens(__dirname + '/../node_modules/metamath-test/anatomy.mm');
+    expect(okay).to.equal(true);
+    expect(checkmm.tokens.length).to.equal(60);
   });
 
 });

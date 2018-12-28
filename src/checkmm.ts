@@ -52,7 +52,30 @@ export const std = {
   }
 };
 
-let tokens: string[] = [];
+export class Stream {
+  private fd: number;
+  private buffer: Buffer = Buffer.alloc(1);
+  private arr: string[] = [];
+
+  constructor(filename: string) {
+    this.fd = fs.openSync(filename, 'r');
+  }
+
+  get(): string {
+    if (this.arr.length) {
+      return this.arr.shift();
+    } else {
+      const bytesRead = fs.readSync(this.fd, this.buffer, 0, 1, null);
+      return (bytesRead === 1) ? this.buffer.toString() : null;
+    }
+  }
+
+  unget(s: string) {
+    this.arr.unshift(s);
+  }
+}
+
+export let tokens: string[] = [];
 
 const constants: string[] = [];
 
@@ -200,25 +223,25 @@ export function containsonlyupperorq(token: string): boolean {
   return true;
 }
 
-export function nexttoken(input: fs.ReadStream): string {
+export function nexttoken(input: Stream): string {
     let ch: string = null;
     let token: string = '';
 
     // Skip whitespace
     while (true) {
-      ch = input.read(1) as string;
+      ch = input.get();
       if (ch === null || !ismmws(ch)) {
         break;
       }
     }
 
     if (ch !== null) {
-      input.unshift(ch);
+      input.unget(ch);
     }
 
     // Get token
     while (true) {
-      ch = input.read(1) as string;
+      ch = input.get();
 
       if (ch === null || ismmws(ch)) {
         break;
@@ -245,12 +268,7 @@ export function readtokens(filename: string): boolean {
 
   names[filename] = null;
 
-  const fin = fs.createReadStream(filename, {encoding: 'utf8'});
-
-  if (!fin) {
-    console.error('Could not open ' + filename);
-    return false;
-  }
+  const fin = new Stream(filename);
 
   let incomment = false;
   let infileinclusion = false;
