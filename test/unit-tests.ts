@@ -26,7 +26,7 @@ describe('checkmm-js', () => {
       assertions: {
         world: {
           hypotheses: [],
-          disjvars: new Set<[string, string]>(),
+          disjvars: [],
           expression: []
         }
       }
@@ -98,10 +98,9 @@ describe('checkmm-js', () => {
     });
     const expression = '|- ( ph -> A. x ph )'.split(' ');
     const assertion: checkmm.Assertion = checkmm.constructassertion('ax-17', expression);
-//    expect(assertion.hypotheses).to.equal(['wph', 'vx']);
-    expect(assertion.disjvars.size).to.equal(1);
-//    expect(assertion.disjvars.has(['ph', 'x'])).to.equal(true);
-    expect(assertion.expression).to.equal(expression);
+//    expect(assertion.hypotheses).to.deep.equal(['wph', 'vx']);
+    expect(assertion.disjvars).to.deep.equal([['ph', 'x']]);
+    expect(assertion.expression).to.deep.equal(expression);
   });
 
 });

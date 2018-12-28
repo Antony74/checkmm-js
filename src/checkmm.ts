@@ -111,7 +111,7 @@ let variables: Set<string> = new Set<string>();
 export class Assertion {
   // Hypotheses of this axiom or theorem.
   hypotheses: string[] = [];
-  disjvars: Set<[string, string]> = new Set<[string, string]>();
+  disjvars: [string, string][] = [];
 
   // Statement of axiom or theorem.
   expression: Expression = [];
@@ -414,7 +414,7 @@ export function constructassertion(label: string, exp: Expression): Assertion {
 
       for (let n = 0; n < dset.length; ++n) {
         for (let n2 = n + 1; n2 < dset.length; ++n2) {
-          assertion.disjvars.add([dset[n], dset[n2]]);
+          assertion.disjvars.push([dset[n], dset[n2]]);
         }
       }
     }
