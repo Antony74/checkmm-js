@@ -235,3 +235,97 @@ export function nexttoken(input: fs.ReadStream): string {
     return token;
 }
 
+const names: {[name: string]: null} = {};
+
+export function readtokens(filename: string): boolean {
+  const alreadyencountered: boolean = (names[filename] === null);
+  if (alreadyencountered) {
+    return true;
+  }
+
+  names[filename] = null;
+
+  const fin = fs.createReadStream(filename, {encoding: 'utf8'});
+
+  if (!fin) {
+    console.error('Could not open ' + filename);
+    return false;
+  }
+
+  let incomment = false;
+  let infileinclusion = false;
+  let newfilename: string = '';
+
+  let token: string = '';
+  while (true) {
+    token = nexttoken(fin);
+    if (!token.length) {
+      break;
+    }
+
+    if (incomment) {
+      if (token === '$)') {
+        incomment = false;
+        continue;
+      }
+      if (token.indexOf('$(') !== -1) {
+        console.log('Characters $( found in a comment');
+        return false;
+      }
+      if (token.indexOf('$)') !== -1) {
+        console.log('Characters $) found in a comment');
+        return false;
+      }
+      continue;
+    }
+
+    // Not in comment
+    if (token === '$(') {
+        incomment = true;
+        continue;
+    }
+
+    if (infileinclusion) {
+      if (!newfilename.length) {
+        if (token.indexOf('$') !== -1) {
+          console.log('Filename ' + token + ' contains a $');
+          return false;
+        }
+        newfilename = token;
+        continue;
+      } else {
+        if (token !== '$]') {
+          console.log('Didn\'t find closing file inclusion delimiter');
+          return false;
+        }
+
+        const okay: boolean = readtokens(newfilename);
+        if (!okay) {
+          return false;
+        }
+        infileinclusion = false;
+        newfilename = '';
+        continue;
+      }
+    }
+    if (token === '$[') {
+      infileinclusion = true;
+      continue;
+    }
+
+    tokens.push(token);
+  }
+
+  if (incomment) {
+    console.error('Unclosed comment');
+    return false;
+  }
+
+  if (infileinclusion) {
+      console.error('Unfinished file inclusion command');
+      return false;
+  }
+
+  return true;
+}
+
