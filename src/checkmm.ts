@@ -49,6 +49,15 @@ export const std = {
     } else {
       return true;
     }
+  },
+  set_intersection: function<T>(s1: Set<T>, s2: Set<T>): Set<T> {
+    const s3 = new Set<T>();
+    s1.forEach((value: T) => {
+      if (s2.has(value)) {
+        s3.add(value);
+      }
+    });
+    return s3;
   }
 };
 
@@ -108,7 +117,7 @@ class Scope {
   activevariables: Set<string> = new Set<string>();
   // Labels of active hypotheses
   activehyp: string[] = [];
-  disjvars: {[token: string]: void}[] = [];
+  disjvars: Set<string>[] = [];
   // Map from variable to label of active floating hypothesis
   floatinghyp: {[token: string]: string} = {};
 }
@@ -181,8 +190,8 @@ export function isdvr(var1: string, var2: string) {
     const scope = scopes[nScope];
     for (let nDisjvar = 0; nDisjvar !== scope.disjvars.length; ++nDisjvar) {
       const disjvar = scope.disjvars[nDisjvar];
-      if (disjvar[var1] !== undefined
-      &&  disjvar[var2] !== undefined) {
+      if (disjvar.has(var1)
+      &&  disjvar.has(var2)) {
         return true;
       }
     }
@@ -387,11 +396,10 @@ export function constructassertion(label: string, exp: Expression): Assertion {
   }
 
   // Determine mandatory disjoint variable restrictions
-  /*
   for (let nScope = 0; nScope < scopes.length; ++nScope) {
-    const disjvars: {[token: string]: void}[] = scopes[nScope].disjvars;
+    const disjvars: Set<string>[] = scopes[nScope].disjvars;
     for (let nDisjvars = 0; nDisjvars < disjvars.length; ++ nDisjvars) {
-      const dset: string[] = Object.keys(std.setIntersection(disjvars, varsused));
+      const dset: string[] = Object.keys(std.set_intersection(disjvars[nDisjvars], varsused));
 
       for (let n = 0; n < dset.length; ++n) {
         for (let n2 = n + 1; n < dset.length; ++n2) {
@@ -400,7 +408,7 @@ export function constructassertion(label: string, exp: Expression): Assertion {
       }
     }
   }
-*/
+
   assertions[label] = assertion;
   return assertion;
 }
