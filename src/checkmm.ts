@@ -35,22 +35,25 @@
 
 import * as fs from 'fs';
 
-export const std = {
-  isupper: (s: string): boolean => {
+export namespace std {
+
+  export function isupper(s: string): boolean {
     if ( /[^A-Z]/.test(s)) {
       return false;
     } else {
       return true;
     }
-  },
-  isalnum: (s: string): boolean => {
+  }
+
+  export function isalnum(s: string): boolean {
     if ( /[^a-zA-Z0-9]/.test(s)) {
       return false;
     } else {
       return true;
     }
-  },
-  set_intersection: function<T>(s1: Set<T>, s2: Set<T>): Set<T> {
+  }
+
+  export function set_intersection<T>(s1: Set<T>, s2: Set<T>): Set<T> {
     const s3 = new Set<T>();
     s1.forEach((value: T) => {
       if (s2.has(value)) {
@@ -59,30 +62,36 @@ export const std = {
     });
     return s3;
   }
-};
 
-export class Stream {
-  private fd: number;
-  private buffer: Buffer = Buffer.alloc(1);
-  private arr: string[] = [];
+  export class IStream {
+    private fd: number;
+    private buffer: Buffer = Buffer.alloc(1);
+    private arr: string[] = [];
 
-  constructor(filename: string) {
-    this.fd = fs.openSync(filename, 'r');
-  }
+    constructor(filename: string) {
+      this.fd = fs.openSync(filename, 'r');
+    }
 
-  get(): string {
-    if (this.arr.length) {
-      return this.arr.shift();
-    } else {
-      const bytesRead = fs.readSync(this.fd, this.buffer, 0, 1, null);
-      return (bytesRead === 1) ? this.buffer.toString() : null;
+    get(): string {
+      if (this.arr.length) {
+        return this.arr.shift();
+      } else {
+        const bytesRead = fs.readSync(this.fd, this.buffer, 0, 1, null);
+        return (bytesRead === 1) ? this.buffer.toString() : null;
+      }
+    }
+
+    unget(s: string) {
+      this.arr.unshift(s);
     }
   }
 
-  unget(s: string) {
-    this.arr.unshift(s);
+  export class Pair<T1, T2> {
+    first: T1;
+    second: T2;
   }
 }
+
 
 export let tokens: string[] = [];
 
@@ -92,17 +101,14 @@ type Expression = string[];
 
 // The first parameter is the statement of the hypothesis, the second is
 // true iff the hypothesis is floating.
-class Hypothesis {
-  first: Expression;
-  second: boolean;
-}
+type Hypothesis = std.Pair<Expression, boolean>;
 
 let hypotheses: {[token: string]: Hypothesis} = {};
 
-const variables: Set<string> = new Set<string>();
+let variables: Set<string> = new Set<string>();
 
 // An axiom or a theorem.
-class Assertion {
+export class Assertion {
   // Hypotheses of this axiom or theorem.
   hypotheses: string[] = [];
   disjvars: Set<[string, string]> = new Set<[string, string]>();
@@ -129,14 +135,16 @@ interface TestValues {
   hypotheses?: {[token: string]: Hypothesis};
   assertions?: {[token: string]: Assertion};
   scopes?: Scope[];
+  variables?: Set<string>;
 }
 
 export function initTestValues(values: TestValues) {
-  ({tokens, hypotheses, assertions, scopes} = {
+  ({tokens, hypotheses, assertions, scopes, variables} = {
     tokens: [],
     hypotheses: {},
     assertions: {},
     scopes: [],
+    variables: new Set<string>(),
     ...values
   });
 }
@@ -232,7 +240,7 @@ export function containsonlyupperorq(token: string): boolean {
   return true;
 }
 
-export function nexttoken(input: Stream): string {
+export function nexttoken(input: std.IStream): string {
   let ch: string = null;
   let token: string = '';
 
@@ -277,7 +285,7 @@ export function readtokens(filename: string): boolean {
 
   names.add(filename);
 
-  const fin = new Stream(filename);
+  const fin = new std.IStream(filename);
 
   let incomment = false;
   let infileinclusion = false;
@@ -288,7 +296,7 @@ export function readtokens(filename: string): boolean {
     token = nexttoken(fin);
     if (!token.length) {
       break;
-    }
+      }
 
     if (incomment) {
       if (token === '$)') {
@@ -376,9 +384,9 @@ export function constructassertion(label: string, exp: Expression): Assertion {
     }
   }
 
-  for (let nScope = scopes.length - 1; nScope > 0; --nScope) {
+  for (let nScope = scopes.length - 1; nScope >= 0; --nScope) {
     const hypvec: string[] = scopes[nScope].activehyp;
-    for (let n = hypvec.length - 1; n > 0; --n) {
+    for (let n = hypvec.length - 1; n >= 0; --n) {
       const hyp: Hypothesis = hypotheses[hypvec[n]];
       if (hyp && varsused.has(hyp.first[1])) {
         // Mandatory floating hypothesis
@@ -399,10 +407,13 @@ export function constructassertion(label: string, exp: Expression): Assertion {
   for (let nScope = 0; nScope < scopes.length; ++nScope) {
     const disjvars: Set<string>[] = scopes[nScope].disjvars;
     for (let nDisjvars = 0; nDisjvars < disjvars.length; ++ nDisjvars) {
-      const dset: string[] = Object.keys(std.set_intersection(disjvars[nDisjvars], varsused));
+      const dset: string[] = [];
+      std.set_intersection(disjvars[nDisjvars], varsused).forEach((value) => {
+        dset.push(value);
+      });
 
       for (let n = 0; n < dset.length; ++n) {
-        for (let n2 = n + 1; n < dset.length; ++n2) {
+        for (let n2 = n + 1; n2 < dset.length; ++n2) {
           assertion.disjvars.add([dset[n], dset[n2]]);
         }
       }
@@ -412,26 +423,4 @@ export function constructassertion(label: string, exp: Expression): Assertion {
   assertions[label] = assertion;
   return assertion;
 }
-
-/*
-            std::set<std::string> dset;
-            std::set_intersection
-                 (iter2->begin(), iter2->end(),
-                  varsused.begin(), varsused.end(),
-                  std::inserter(dset, dset.end()));
-
-            for (std::set<std::string>::const_iterator diter(dset.begin());
-                 diter != dset.end(); ++diter)
-            {
-                std::set<std::string>::const_iterator diter2(diter);
-                ++diter2;
-                for (; diter2 != dset.end(); ++diter2)
-                    assertion.disjvars.insert(std::make_pair(*diter, *diter2));
-            }
-        }
-    }
-
-    return assertion;
-}
-*/
 

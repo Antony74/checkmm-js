@@ -62,7 +62,7 @@ describe('checkmm-js', () => {
     console.error = () => ++errors;
 
     fs.writeFileSync('test.txt', 'hello world', {encoding: 'utf8'});
-    const hw: checkmm.Stream = new checkmm.Stream('test.txt');
+    const hw: checkmm.std.IStream = new checkmm.std.IStream('test.txt');
     expect(checkmm.nexttoken(hw)).to.equal('hello');
     expect(checkmm.nexttoken(hw)).to.equal('world');
     expect(checkmm.nexttoken(hw)).to.equal('');
@@ -70,7 +70,7 @@ describe('checkmm-js', () => {
     expect(errors).to.equal(0);
 
     fs.writeFileSync('test.txt', String.fromCharCode(127), {encoding: 'utf8'});
-    const invalid: checkmm.Stream = new checkmm.Stream('test.txt');
+    const invalid: checkmm.std.IStream = new checkmm.std.IStream('test.txt');
     expect(checkmm.nexttoken(invalid)).to.equal('');
     expect(errors).to.equal(1);
 
@@ -82,6 +82,26 @@ describe('checkmm-js', () => {
     const okay: boolean = checkmm.readtokens(__dirname + '/../node_modules/metamath-test/anatomy.mm');
     expect(okay).to.equal(true);
     expect(checkmm.tokens.length).to.equal(60);
+  });
+
+  it('can construct assertions with disjoint variables', () => {
+    checkmm.initTestValues({
+      scopes: [
+        {
+          activevariables: new Set<string>(),
+          activehyp: [],
+          disjvars: [new Set<string>(['ph', 'x'])],
+          floatinghyp: {}
+        }
+      ],
+      variables: new Set<string>(['ps', 'ph', 'x'])
+    });
+    const expression = '|- ( ph -> A. x ph )'.split(' ');
+    const assertion: checkmm.Assertion = checkmm.constructassertion('ax-17', expression);
+//    expect(assertion.hypotheses).to.equal(['wph', 'vx']);
+    expect(assertion.disjvars.size).to.equal(1);
+//    expect(assertion.disjvars.has(['ph', 'x'])).to.equal(true);
+    expect(assertion.expression).to.equal(expression);
   });
 
 });
