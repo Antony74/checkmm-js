@@ -388,10 +388,10 @@ export function constructassertion(label: string, exp: Expression): Assertion {
     const hypvec: string[] = scopes[nScope].activehyp;
     for (let n = hypvec.length - 1; n >= 0; --n) {
       const hyp: Hypothesis = hypotheses[hypvec[n]];
-      if (hyp && varsused.has(hyp.first[1])) {
+      if (hyp.second && varsused.has(hyp.first[1])) {
         // Mandatory floating hypothesis
         assertion.hypotheses.unshift(hypvec[n]);
-      } else if (hyp.second) {
+      } else if (!hyp.second) {
         // Essential hypothesis
         assertion.hypotheses.unshift(hypvec[n]);
         for (let nExpression = 0; nExpression < hyp.first.length; ++nExpression) {

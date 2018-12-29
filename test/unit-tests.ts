@@ -86,7 +86,23 @@ describe('checkmm-js', () => {
 
   it('can construct assertions with disjoint variables', () => {
     checkmm.initTestValues({
+      hypotheses: {
+        wph: {
+          first: ['whp', 'ph'],
+          second: true
+        },
+        vx: {
+          first: ['vx', 'x'],
+          second: true
+        }
+      },
       scopes: [
+        {
+          activevariables: new Set<string>(),
+          activehyp: ['wph', 'vx'],
+          disjvars: [new Set<string>()],
+          floatinghyp: {}
+        },
         {
           activevariables: new Set<string>(),
           activehyp: [],
@@ -98,7 +114,7 @@ describe('checkmm-js', () => {
     });
     const expression = '|- ( ph -> A. x ph )'.split(' ');
     const assertion: checkmm.Assertion = checkmm.constructassertion('ax-17', expression);
-//    expect(assertion.hypotheses).to.deep.equal(['wph', 'vx']);
+    expect(assertion.hypotheses).to.deep.equal(['wph', 'vx']);
     expect(assertion.disjvars).to.deep.equal([['ph', 'x']]);
     expect(assertion.expression).to.deep.equal(expression);
   });
