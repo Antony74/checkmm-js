@@ -95,9 +95,9 @@ export namespace std {
 
 export let tokens: string[] = [];
 
-const constants: string[] = [];
+let constants: string[] = [];
 
-type Expression = string[];
+export type Expression = string[];
 
 // The first parameter is the statement of the hypothesis, the second is
 // true iff the hypothesis is floating.
@@ -136,15 +136,17 @@ interface TestValues {
   assertions?: {[token: string]: Assertion};
   scopes?: Scope[];
   variables?: Set<string>;
+  constants?: string[];
 }
 
 export function initTestValues(values: TestValues) {
-  ({tokens, hypotheses, assertions, scopes, variables} = {
+  ({tokens, hypotheses, assertions, scopes, variables, constants} = {
     tokens: [],
     hypotheses: {},
     assertions: {},
     scopes: [],
     variables: new Set<string>(),
+    constants: [],
     ...values
   });
 }
@@ -422,5 +424,53 @@ export function constructassertion(label: string, exp: Expression): Assertion {
 
   assertions[label] = assertion;
   return assertion;
+}
+
+// Read an expression from the token stream.
+export function readexpression(stattype: string, label: string, terminator: string): Expression {
+
+  const exp: Expression = [];
+
+  if (!tokens.length) {
+    console.error('Unfinished $' + stattype + ' statement ' + label);
+    return null;
+  }
+
+  const type: string = tokens[0];
+
+  if (constants.find((value) => type === value) === undefined) {
+    console.error('First symbol in $' + stattype + ' statement ' + label + ' is ' + type + ' which is not a constant');
+    return null;
+  }
+
+  tokens.shift();
+
+  exp.push(type);
+
+  while (tokens.length) {
+    const token = tokens.shift();
+
+    if (token === terminator) {
+      break;
+    }
+
+    if (constants.find((value) => value === token) === undefined
+    &&  getfloatinghyp(token).length === 0) {
+      console.error('In $' + stattype + ' statement ' + label
+                  + ' token ' + token
+                  + ' found which is not a constant or variable in an'
+                  + ' active $f statement');
+      return null;
+    }
+
+    exp.push(token);
+  }
+
+  if (!tokens.length) {
+    console.error('Unfinished $' + stattype + ' statement ' + label);
+    return null;
+  }
+
+  return exp;
 }
 

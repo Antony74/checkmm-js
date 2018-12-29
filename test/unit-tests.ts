@@ -119,5 +119,14 @@ describe('checkmm-js', () => {
     expect(assertion.expression).to.deep.equal(expression);
   });
 
+  it('can read expressions', () => {
+    checkmm.initTestValues({
+      tokens: '|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' '),
+      constants: ['|-', '(', ')', '->', 'ph', 'ps']
+    });
+    const expression: checkmm.Expression = checkmm.readexpression('a', 'ax-1', '$.');
+    expect(expression).to.deep.equal('|- ( ph -> ( ps -> ph ) )'.split(' '));
+  });
+
 });
 
