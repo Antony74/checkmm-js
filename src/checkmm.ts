@@ -474,3 +474,18 @@ export function readexpression(stattype: string, label: string, terminator: stri
   return exp;
 }
 
+// Make a substitution of variables. The result is put in "destination".
+export function makesubstitution(original: Expression, substmap: {[label: string]: Expression}): Expression {
+  let destination: Expression = [];
+  for (let n = 0; n < original.length; ++n) {
+    const substitution = substmap[original[n]];
+    if (substitution === undefined) {
+      // Constant
+      destination.push(original[n]);
+    } else {
+      destination = [...destination, ...substitution];
+    }
+  }
+  return destination;
+}
+

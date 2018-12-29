@@ -128,5 +128,15 @@ describe('checkmm-js', () => {
     expect(expression).to.deep.equal('|- ( ph -> ( ps -> ph ) )'.split(' '));
   });
 
+  it('can make substituions', () => {
+    const expression: checkmm.Expression = checkmm.makesubstitution(
+      ['weather', 'is', 'sunny'],
+      {
+        sunny: ['raining', 'cats', 'and', 'dogs']
+      }
+    );
+    expect(expression).to.deep.equal(['weather', 'is', 'raining', 'cats', 'and', 'dogs']);
+  });
+
 });
 
