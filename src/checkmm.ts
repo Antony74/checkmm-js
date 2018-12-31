@@ -489,3 +489,48 @@ export function makesubstitution(original: Expression, substmap: {[label: string
   return destination;
 }
 
+export function getproofnumbers(label: string, proof: string): number[] {
+  const proofnumbers: number[] = [];
+  let num = 0;
+  let justgotnum = false;
+  for (let n = 0; n < proof.length; ++n) {
+    if (proof[n] <= 'T') {
+      const addval: number = proof.charCodeAt(n) - ('A'.charCodeAt(0) - 1);
+
+      if (num > Number.MAX_SAFE_INTEGER / 20 || 20 * num > Number.MAX_SAFE_INTEGER - addval) {
+        console.error('Overflow computing numbers in compressed proof of ' + label);
+        return null;
+      }
+
+      proofnumbers.push((20 * num) + addval);
+      num = 0;
+      justgotnum = true;
+    } else if (proof[n] <= 'Y') {
+      const addval: number = proof.charCodeAt(n) - 'T'.charCodeAt(0);
+
+      if (num > Number.MAX_SAFE_INTEGER / 5 || 5 * num > Number.MAX_SAFE_INTEGER - addval) {
+        console.log('Overflow computing numbers in compressed proof of ' + label);
+        return null;
+      }
+
+      num = (5 * num) + addval;
+      justgotnum = false;
+    } else { // It must be Z
+      if (!justgotnum) {
+        console.error('Stray Z found in compressed proof of ' + label);
+        return null;
+      }
+
+      proofnumbers.push(0);
+      justgotnum = false;
+    }
+  }
+
+  if (num !== 0) {
+    console.error('Compressed proof of theorem ' + label + ' ends in unfinished number');
+    return null;
+  }
+
+  return proofnumbers;
+}
+
