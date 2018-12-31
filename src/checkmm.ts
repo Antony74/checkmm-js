@@ -306,11 +306,11 @@ export function readtokens(filename: string): boolean {
         continue;
       }
       if (token.indexOf('$(') !== -1) {
-        console.log('Characters $( found in a comment');
+        console.error('Characters $( found in a comment');
         return false;
       }
       if (token.indexOf('$)') !== -1) {
-        console.log('Characters $) found in a comment');
+        console.error('Characters $) found in a comment');
         return false;
       }
       continue;
@@ -325,14 +325,14 @@ export function readtokens(filename: string): boolean {
     if (infileinclusion) {
       if (!newfilename.length) {
         if (token.indexOf('$') !== -1) {
-          console.log('Filename ' + token + ' contains a $');
+          console.error('Filename ' + token + ' contains a $');
           return false;
         }
         newfilename = token;
         continue;
       } else {
         if (token !== '$]') {
-          console.log('Didn\'t find closing file inclusion delimiter');
+          console.error('Didn\'t find closing file inclusion delimiter');
           return false;
         }
 
@@ -509,7 +509,7 @@ export function getproofnumbers(label: string, proof: string): number[] {
       const addval: number = proof.charCodeAt(n) - 'T'.charCodeAt(0);
 
       if (num > Number.MAX_SAFE_INTEGER / 5 || 5 * num > Number.MAX_SAFE_INTEGER - addval) {
-        console.log('Overflow computing numbers in compressed proof of ' + label);
+        console.error('Overflow computing numbers in compressed proof of ' + label);
         return null;
       }
 
@@ -532,5 +532,78 @@ export function getproofnumbers(label: string, proof: string): number[] {
   }
 
   return proofnumbers;
+}
+
+// Subroutine for proof verification. Verify a proof step referencing an
+// assertion (i.e., not a hypothesis).
+export function verifyassertionref(thlabel: string, reflabel: string, stack: Expression[]): Expression[] {
+  const assertion: Assertion = assertions[reflabel];
+  if (stack.length < assertion.hypotheses.length) {
+    console.error('In proof of theorem ' + thlabel + ' not enough items found on stack');
+    return null;
+  }
+
+  const base: number = stack.length - assertion.hypotheses.length;
+
+  const substitutions: {[label: string]: Expression} = {};
+
+  // Determine substitutions and check that we can unify
+  for (let i = 0; i < assertion.hypotheses.length; ++i) {
+    const hypothesis: Hypothesis = hypotheses[assertion.hypotheses[i]];
+    if (hypothesis.second) {
+      // Floating hypothesis of the referenced assertion
+      if (hypothesis.first[0] !== stack[base + i][0]) {
+        console.error('In proof of theorem ' + thlabel + ' unification failed');
+        return null;
+      }
+
+      const subst: Expression = stack[base + i].slice(1);
+      substitutions[hypothesis.first[1]] = subst;
+    } else {
+      // Essential hypothesis
+      const dest: Expression = makesubstitution(hypothesis.first, substitutions);
+      if (JSON.stringify(dest) !== JSON.stringify(stack[base + i])) {
+        console.error('In proof of theorem ' + thlabel + ' unification failed');
+        return null;
+      }
+    }
+  }
+
+  // Remove hypotheses from stack
+  stack = stack.slice(0, base);
+
+  // Verify disjoint variable conditions
+  for (let nDisjvar = 0; nDisjvar < assertion.disjvars.length; ++nDisjvar) {
+    const exp1: Expression = substitutions[assertion.disjvars[nDisjvar][0]];
+    const exp2: Expression = substitutions[assertion.disjvars[nDisjvar][1]];
+
+    const exp1vars: string[] = [];
+    for (let nExp1 = 0; nExp1 < exp1.length; ++nExp1) {
+      if (variables.has(exp1[nExp1])) {
+        exp1vars.push(exp1[nExp1]);
+      }
+    }
+
+    const exp2vars: string[] = [];
+    for (let nExp2 = 0; nExp2 < exp2.length; ++nExp2) {
+      if (variables.has(exp2[nExp2])) {
+        exp2vars.push(exp2[nExp2]);
+      }
+    }
+
+    for (let nExp1 = 0; nExp1 < exp1vars.length; ++nExp1) {
+      for (let nExp2 = 0; nExp2 < exp2vars.length; ++nExp2) {
+        if (!isdvr(exp1vars[nExp1], exp2vars[nExp2])) {
+          console.error('In proof of theorem ' + thlabel + ' disjoint variable restriction violated');
+          return null;
+        }
+      }
+    }
+  }
+
+  // Done verification of this step. Insert new statement onto stack.
+  const result: Expression = makesubstitution(assertion.expression, substitutions);
+  stack.push(result);
+  return stack;
 }
 

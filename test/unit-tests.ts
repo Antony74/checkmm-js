@@ -88,11 +88,11 @@ describe('checkmm-js', () => {
     checkmm.initTestValues({
       hypotheses: {
         wph: {
-          first: ['whp', 'ph'],
+          first: ['wff', 'ph'],
           second: true
         },
         vx: {
-          first: ['vx', 'x'],
+          first: ['wff', 'x'],
           second: true
         }
       },
@@ -147,8 +147,95 @@ describe('checkmm-js', () => {
       1, 2, 3, 4, 0, 5, 0, 1, 2, 6, 0, 5, 0, 6, 0, 1, 3, 6, 0, 5, 0, 6, 0, 4, 0, 1, 2, 7, 0, 1, 3, 7, 0, 4, 16, 1, 17, 20, 4, 0, 5,
       18, 21, 4, 23, 15, 26, 1, 2, 3, 8, 9, 1, 17, 20, 10, 18, 21, 8, 11, 24, 19, 25, 22, 1, 2, 12, 1, 3, 12, 13, 14
     ]);
+  });
 
+  it('can verify a proof step references an assertion', () => {
+    checkmm.initTestValues({
+      assertions: {
+        'ax-mp': {
+          hypotheses: ['wph', 'wps', 'min', 'maj'],
+          disjvars: [],
+          expression: ['|-', 'ps']
+        }
+      },
+      hypotheses: {
+        'wph': {
+          first: ['wff', 'ph'],
+          second: true
+        },
+        'wps': {
+          first: ['wff', 'ps'],
+          second: true
+        },
+        'min': {
+          first: ['|-', 'ph'],
+          second: false
+        },
+        'maj': {
+          first: ['|-', '(', 'ph', '->', 'ps', ')'],
+          second: false
+        }
+      }
+    });
 
+    const result: checkmm.Expression[] = checkmm.verifyassertionref('mpdb', 'ax-mp', [
+      ['wff', 'ps'],
+      ['wff', 'ch'],
+      ['wff', 'ph'],
+      ['wff', 'ps'],
+      ['|-', 'ph'],
+      ['|-', '(', 'ph', '->', 'ps', ')']
+    ]);
+
+    expect(result).to.deep.equal([
+      ['wff', 'ps'],
+      ['wff', 'ch'],
+      ['|-', 'ps']
+    ]);
+  });
+
+  it('can verify a proof step references an assertion with dijoint variable conditions', () => {
+    checkmm.initTestValues({
+      assertions: {
+        'ax-17': {
+          hypotheses: ['wph', 'vx'],
+          expression: ['|-', '(', 'ph', '->', 'A.', 'x', 'ph', ')'],
+          disjvars: [['ph', 'x']]
+        }
+      },
+      hypotheses: {
+        'wph': {
+          first: ['wff', 'ph'],
+          second: true
+        },
+        'vx': {
+          first: ['set', 'x'],
+          second: true
+        },
+      },
+      variables: new Set<string>(['ps', 'x']),
+      scopes: [
+        {
+          activehyp: [],
+          activevariables: new Set<string>(),
+          floatinghyp: {},
+          disjvars: [new Set<string>(['ps', 'x'])]
+        }
+      ]
+    });
+
+    const result: checkmm.Expression[] = checkmm.verifyassertionref('a17d', 'ax-17', [
+      ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
+      ['wff', 'ph'],
+      ['wff', 'ps'],
+      ['set', 'x']
+    ]);
+
+    expect(result).to.deep.equal([
+      ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
+      ['wff', 'ph'],
+      ['|-', '(', 'ps', '->', 'A.', 'x', 'ps', ')']
+    ]);
   });
 
 });
