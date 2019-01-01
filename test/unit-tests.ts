@@ -238,5 +238,93 @@ describe('checkmm-js', () => {
     ]);
   });
 
+  it('can verify a regular proof', () => {
+
+    checkmm.initTestValues({
+      hypotheses: {
+        tt: {
+          first: ['term', 't'],
+          second: true
+        },
+        tr: {
+          first: ['term', 'r'],
+          second: true
+        },
+        ts: {
+          first: ['term', 's'],
+          second: true
+        },
+        wp: {
+          first: ['wff', 'P'],
+          second: true
+        },
+        wq: {
+          first: ['wff', 'Q'],
+          second: true
+        },
+        min: {
+          first: ['|-', 'P'],
+          second: false
+        },
+        maj: {
+          first: '|- ( P -> Q )'.split(' '),
+          second: false
+        }
+      },
+      assertions: {
+        tze: {
+          expression: ['term', '0'],
+          disjvars: [],
+          hypotheses: []
+        },
+        tpl: {
+          expression: ['term', '(', 't', '+', 'r', ')'],
+          disjvars: [],
+          hypotheses: ['tt', 'tr']
+        },
+        weq: {
+          expression: ['wff', 't', '=', 'r'],
+          disjvars: [],
+          hypotheses: ['tt', 'tr']
+        },
+        a1: {
+          expression: '|- ( t = r -> ( t = s -> r = s ) )'.split(' '),
+          disjvars: [],
+          hypotheses: ['tt', 'tr', 'ts']
+        },
+        a2: {
+          expression: ['|-', '(', 't', '+', '0', ')', '=', 't'],
+          disjvars: [],
+          hypotheses: ['tt']
+        },
+        mp: {
+          expression: ['|-', 'Q'],
+          disjvars: [],
+          hypotheses: ['wp', 'wq', 'min', 'maj']
+        },
+        wim: {
+          expression: ['wff', '(', 'P', '->', 'Q', ')'],
+          disjvars: [],
+          hypotheses: ['wp', 'wq']
+        }
+      }
+    });
+
+    const theorem: checkmm.Assertion = {
+      hypotheses: ['tt'],
+      disjvars: [],
+      expression: ['|-', 't', '=', 't']
+    };
+
+    const proof: string[] = (
+      'tt tze tpl tt weq tt tt weq tt a2 tt tze tpl ' +
+      'tt weq tt tze tpl tt weq tt tt weq wim tt a2 ' +
+      'tt tze tpl tt tt a1 mp mp'
+    ).split(' ');
+
+    const result: boolean = checkmm.verifyregularproof('th1', theorem, proof);
+    expect(result).to.equal(true);
+  });
+
 });
 

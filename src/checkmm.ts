@@ -538,6 +538,12 @@ export function getproofnumbers(label: string, proof: string): number[] {
 // assertion (i.e., not a hypothesis).
 export function verifyassertionref(thlabel: string, reflabel: string, stack: Expression[]): Expression[] {
   const assertion: Assertion = assertions[reflabel];
+
+  if (!assertion) {
+    console.error('In proof of theorem ' + thlabel + ' assertion ' + reflabel + ' is undefined');
+    return null;
+  }
+
   if (stack.length < assertion.hypotheses.length) {
     console.error('In proof of theorem ' + thlabel + ' not enough items found on stack');
     return null;
@@ -550,6 +556,12 @@ export function verifyassertionref(thlabel: string, reflabel: string, stack: Exp
   // Determine substitutions and check that we can unify
   for (let i = 0; i < assertion.hypotheses.length; ++i) {
     const hypothesis: Hypothesis = hypotheses[assertion.hypotheses[i]];
+
+    if (!hypothesis) {
+      console.error('In proof of theorem ' + thlabel + ' hypothesis ' + assertion.hypotheses[i] + ' is undefined');
+      return null;
+    }
+
     if (hypothesis.second) {
       // Floating hypothesis of the referenced assertion
       if (hypothesis.first[0] !== stack[base + i][0]) {
@@ -605,5 +617,37 @@ export function verifyassertionref(thlabel: string, reflabel: string, stack: Exp
   const result: Expression = makesubstitution(assertion.expression, substitutions);
   stack.push(result);
   return stack;
+}
+
+// Verify a regular proof. The "proof" argument should be a non-empty sequence
+// of valid labels. Return true iff the proof is correct.
+export function verifyregularproof(label: string, theorem: Assertion, proof: string[]): boolean {
+  let stack: Expression[] = [];
+  for (let n = 0; n < proof.length; ++n) {
+    // If step is a hypothesis, just push it onto the stack.
+    const hyp: Hypothesis = hypotheses[proof[n]];
+    if (hyp) {
+      stack.push(hyp.first);
+      continue;
+    }
+
+    // It must be an axiom or theorem
+    stack = verifyassertionref(label, proof[n], stack);
+    if (stack === null) {
+      return false;
+    }
+  }
+
+  if (stack.length !== 1) {
+    console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
+    return false;
+  }
+
+  if (JSON.stringify(stack[0]) !== JSON.stringify(theorem.expression)) {
+    console.error('Proof of theorem ' + label + ' proves wrong statement');
+    return false;
+  }
+
+  return true;
 }
 
