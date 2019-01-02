@@ -16,11 +16,14 @@
     "typescript": "^3.2.2"
   },
   "scripts": {
-    "install": "napa david-a-wheeler/metamath-test",
+    "install": "napa",
     "lint": "tslint test/*.ts src/*.ts",
     "regression-tests": "tsc && mocha --delay test/regression-tests.js",
     "start": "tsc && node src/checkmm.js",
     "test": "yarn unit-tests && yarn regression-tests",
     "unit-tests": "tsc && mocha test/unit-tests.js"
+  },
+  "napa": {
+    "metamath-test": "https://github.com/david-a-wheeler/metamath-test.git"
   }
 }
