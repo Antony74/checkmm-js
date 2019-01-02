@@ -238,9 +238,9 @@ describe('checkmm-js', () => {
     ]);
   });
 
-  it('can verify a regular proof', () => {
+  it('can verify regular and compressed proofs', () => {
 
-    checkmm.initTestValues({
+    const testValues: Partial<checkmm.State> = {
       hypotheses: {
         tt: {
           first: ['term', 't'],
@@ -308,7 +308,7 @@ describe('checkmm-js', () => {
           hypotheses: ['wp', 'wq']
         }
       }
-    });
+    };
 
     const theorem: checkmm.Assertion = {
       hypotheses: ['tt'],
@@ -322,8 +322,13 @@ describe('checkmm-js', () => {
       'tt tze tpl tt tt a1 mp mp'
     ).split(' ');
 
-    const result: boolean = checkmm.verifyregularproof('th1', theorem, proof);
-    expect(result).to.equal(true);
+    checkmm.initTestValues(testValues);
+    const result1: boolean = checkmm.verifyregularproof('th1', theorem, proof);
+    expect(result1).to.equal(true);
+
+//    checkmm.initTestValues(testValues);
+//    const result2: boolean = checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
+//    expect(result2).to.equal(true);
   });
 
 });

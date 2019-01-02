@@ -130,7 +130,7 @@ class Scope {
 
 let scopes: Scope[] = [];
 
-interface State {
+export interface State {
   tokens: string[];
   hypotheses: {[token: string]: Hypothesis};
   assertions: {[token: string]: Assertion};
