@@ -130,16 +130,16 @@ class Scope {
 
 let scopes: Scope[] = [];
 
-interface TestValues {
-  tokens?: string[];
-  hypotheses?: {[token: string]: Hypothesis};
-  assertions?: {[token: string]: Assertion};
-  scopes?: Scope[];
-  variables?: Set<string>;
-  constants?: string[];
+interface State {
+  tokens: string[];
+  hypotheses: {[token: string]: Hypothesis};
+  assertions: {[token: string]: Assertion};
+  scopes: Scope[];
+  variables: Set<string>;
+  constants: string[];
 }
 
-export function initTestValues(values: TestValues) {
+export function initTestValues(state: Partial<State>) {
   ({tokens, hypotheses, assertions, scopes, variables, constants} = {
     tokens: [],
     hypotheses: {},
@@ -147,7 +147,7 @@ export function initTestValues(values: TestValues) {
     scopes: [],
     variables: new Set<string>(),
     constants: [],
-    ...values
+    ...state
   });
 }
 
