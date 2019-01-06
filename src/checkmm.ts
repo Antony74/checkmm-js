@@ -35,6 +35,7 @@
 
 import * as fs from 'fs';
 
+// checkmm uses a little bit of C++'s Standard Template Library.  Simulate it.
 export namespace std {
 
   export function isupper(s: string): boolean {
@@ -92,6 +93,21 @@ export namespace std {
   }
 }
 
+// Simple function for comparing arrays (in C++ STL handles this automatically)
+function arraysequal(arr1: any[], arr2: any[]): boolean {
+
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+
+  for (let n = 0; n < arr1.length; ++n) {
+    if (arr1[n] !== arr2[n]) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 export let tokens: string[] = [];
 
@@ -130,6 +146,7 @@ class Scope {
 
 let scopes: Scope[] = [];
 
+// Expose our state for the test harness to use
 export interface State {
   tokens: string[];
   hypotheses: {[token: string]: Hypothesis};
@@ -139,6 +156,7 @@ export interface State {
   constants: string[];
 }
 
+// Allow the test harness to initialise our state
 export function initTestValues(state: Partial<State>) {
   ({tokens, hypotheses, assertions, scopes, variables, constants} = {
     tokens: [],
@@ -574,7 +592,7 @@ export function verifyassertionref(thlabel: string, reflabel: string, stack: Exp
     } else {
       // Essential hypothesis
       const dest: Expression = makesubstitution(hypothesis.first, substitutions);
-      if (JSON.stringify(dest) !== JSON.stringify(stack[base + i])) {
+      if (!arraysequal(dest, stack[base + i])) {
         console.error('In proof of theorem ' + thlabel + ' unification failed');
         return null;
       }
@@ -643,7 +661,64 @@ export function verifyregularproof(label: string, theorem: Assertion, proof: str
     return false;
   }
 
-  if (JSON.stringify(stack[0]) !== JSON.stringify(theorem.expression)) {
+  if (!arraysequal(stack[0], theorem.expression)) {
+    console.error('Proof of theorem ' + label + ' proves wrong statement');
+    return false;
+  }
+
+  return true;
+}
+
+// Verify a compressed proof
+export function verifycompressedproof(label: string, theorem: Assertion, labels: string[], proofnumbers: number[]): boolean {
+  let stack: Expression[] = [];
+
+  const mandhypt: number = theorem.hypotheses.length;
+  const labelt = mandhypt + labels.length;
+
+  const savedsteps: Expression[] = [];
+  for (let n = 0; n < proofnumbers.length; ++n) {
+    // Save the last proof step if 0
+    if (proofnumbers[n] === 0) {
+      savedsteps.push(stack[stack.length - 1]);
+      continue;
+    }
+
+    // If step is a mandatory hypothesis, just push it onto the stack.
+    if (proofnumbers[n] <= mandhypt) {
+      stack.push(hypotheses[theorem.hypotheses[proofnumbers[n] - 1]].first);
+    } else if (proofnumbers[n] <= labelt) {
+      const proofstep: string = labels[proofnumbers[n] - mandhypt - 1];
+
+      // If step is a (non-mandatory) hypothesis,
+      // just push it onto the stack.
+      const hyp: Hypothesis = hypotheses[proofstep];
+      if (hyp) {
+        stack.push(hyp.first);
+        continue;
+      }
+
+      // It must be an axiom or theorem
+      stack = verifyassertionref(label, proofstep, stack);
+      if (stack === null) {
+        return false;
+      }
+    } else { // Must refer to saved step
+      if (proofnumbers[n] > labelt + savedsteps.length) {
+        console.error('Number in compressed proof of ' + label + ' is too high');
+        return false;
+      }
+
+      stack.push(savedsteps[proofnumbers[n] - labelt - 1]);
+    }
+  }
+
+  if (stack.length !== 1) {
+    console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
+    return false;
+  }
+
+  if (!arraysequal(stack[0], theorem.expression)) {
     console.error('Proof of theorem ' + label + ' proves wrong statement');
     return false;
   }

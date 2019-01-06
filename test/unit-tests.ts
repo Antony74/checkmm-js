@@ -194,7 +194,7 @@ describe('checkmm-js', () => {
     ]);
   });
 
-  it('can verify a proof step references an assertion with dijoint variable conditions', () => {
+  it('can verify a proof step references an assertion with disjoint variable conditions', () => {
     checkmm.initTestValues({
       assertions: {
         'ax-17': {
@@ -326,9 +326,12 @@ describe('checkmm-js', () => {
     const result1: boolean = checkmm.verifyregularproof('th1', theorem, proof);
     expect(result1).to.equal(true);
 
-//    checkmm.initTestValues(testValues);
-//    const result2: boolean = checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
-//    expect(result2).to.equal(true);
+    const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
+    const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
+
+    checkmm.initTestValues(testValues);
+    const result2: boolean = checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
+    expect(result2).to.equal(true);
   });
 
 });
