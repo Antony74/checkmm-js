@@ -726,3 +726,149 @@ export function verifycompressedproof(label: string, theorem: Assertion, labels:
   return true;
 }
 
+// Parse $p statement. Return true iff okay.
+export function parsep(label: string): boolean {
+  const newtheorem: Expression = readexpression('p', label, '$=');
+  if (!newtheorem) {
+    return false;
+  }
+
+  const assertion: Assertion = constructassertion(label, newtheorem);
+
+  // Now for the proof
+
+  if (!tokens.length) {
+    console.log('Unfinished $p statement ' + label);
+    return false;
+  }
+
+  if (tokens[0] === '(') {
+    // Compressed proof
+    tokens.shift();
+
+    // Get labels
+
+    const labels: string[] = [];
+
+    while (tokens.length) {
+      const token: string = tokens[0];
+      if (token === ')') {
+        break;
+      }
+
+      tokens.shift();
+      labels.push(token);
+      if (token === label) {
+        console.log('Proof of theorem ' + label + ' refers to itself');
+        return false;
+      } else if (assertion.hypotheses.find((value) => value === token) !== undefined) {
+        console.error('Compressed proof of theorem ' + label + ' has mandatory hypothesis ' + token + ' in label list');
+        return false;
+      } else if (!assertions[token] && !isactivehyp(token)) {
+        console.error('Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement');
+        return false;
+      }
+    }
+
+    if (!tokens.length) {
+      console.error('Unfinished $p statement ' + label);
+      return false;
+    }
+
+    tokens.shift(); // Discard ) token
+
+    // Get proof steps
+
+    let proof: string = '';
+    while (tokens.length) {
+      const token = tokens[0];
+
+      if (token === '$.') {
+        break;
+      }
+
+      tokens.shift();
+
+      proof += token;
+      if (!containsonlyupperorq(token)) {
+        console.error('Bogus character found in compressed proof of ' + label);
+        return false;
+      }
+    }
+
+    if (!tokens.length) {
+      console.error('Unfinished $p statement ' + label);
+      return false;
+    }
+
+    if (!proof.length) {
+      console.error('Theorem ' + label + ' has no proof');
+      return false;
+    }
+
+    tokens.shift(); // Discard $. token
+
+    if (proof.indexOf('?') !==  -1) {
+      console.error('Warning: Proof of theorem ' + label + ' is incomplete');
+      return true; // Continue processing file
+    }
+
+    const proofnumbers: number[] = getproofnumbers(label, proof);
+    if (!proofnumbers) {
+      return false;
+    }
+
+    const okay: boolean = verifycompressedproof(label, assertion, labels, proofnumbers);
+    if (!okay) {
+      return false;
+    }
+  } else {
+    // Regular (uncompressed proof)
+    const proof: string[] = [];
+    let incomplete = false;
+    while (tokens.length) {
+      const token: string = tokens[0];
+
+      if (token === '$.') {
+        break;
+      }
+
+      tokens.shift();
+      proof.push(token);
+      if (token === '?') {
+        incomplete = true;
+      } else if (token === label) {
+        console.log('Proof of theorem ' + label + ' refers to itself');
+        return false;
+      } else if (!assertions[token] && !isactivehyp(token)) {
+        console.error('Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement');
+        return false;
+      }
+    }
+
+    if (!tokens.length) {
+      console.error('Unfinished $p statement ' + label);
+      return false;
+    }
+
+    if (!proof.length) {
+      console.error('Theorem ' + label + ' has no proof');
+      return false;
+    }
+
+    tokens.shift(); // Discard $. token
+
+    if (incomplete) {
+      console.error('Warning: Proof of theorem ' + label + ' is incomplete');
+      return true; // Continue processing file
+    }
+
+    const okay: boolean = verifyregularproof(label, assertion, proof);
+    if (!okay) {
+      return false;
+    }
+  }
+
+  return true;
+}
+

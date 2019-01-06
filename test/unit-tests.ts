@@ -238,8 +238,7 @@ describe('checkmm-js', () => {
     ]);
   });
 
-  it('can verify regular and compressed proofs', () => {
-
+  function initStateForTh1(tokens: string[]) {
     const testValues: Partial<checkmm.State> = {
       hypotheses: {
         tt: {
@@ -307,8 +306,32 @@ describe('checkmm-js', () => {
           disjvars: [],
           hypotheses: ['wp', 'wq']
         }
-      }
+      },
+      constants: ['(', ')', '+', '->', '0', '=', 'term', 'wff', '|-'],
+      variables: new Set<string>(['P', 'Q', 'r', 's', 't']),
+      tokens: tokens,
+      scopes: [
+        {
+          activevariables: new Set<string>(['P', 'Q', 'r', 's', 't']),
+          activehyp: ['tt', 'tr', 'ts', 'wp', 'wq'],
+          disjvars: [],
+          floatinghyp: {
+            'P': 'wp',
+            'Q': 'wq',
+            'r': 'tr',
+            's': 'ts',
+            't': 'tt'
+          }
+        }
+      ]
     };
+
+    checkmm.initTestValues(testValues);
+  }
+
+  it('can verify regular and compressed proofs', () => {
+
+    initStateForTh1([]);
 
     const theorem: checkmm.Assertion = {
       hypotheses: ['tt'],
@@ -322,16 +345,44 @@ describe('checkmm-js', () => {
       'tt tze tpl tt tt a1 mp mp'
     ).split(' ');
 
-    checkmm.initTestValues(testValues);
     const result1: boolean = checkmm.verifyregularproof('th1', theorem, proof);
     expect(result1).to.equal(true);
+  });
+
+  it('can verify compressed proofs', () => {
+
+    initStateForTh1([]);
 
     const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
     const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
 
-    checkmm.initTestValues(testValues);
+    const theorem: checkmm.Assertion = {
+      hypotheses: ['tt'],
+      disjvars: [],
+      expression: ['|-', 't', '=', 't']
+    };
+
     const result2: boolean = checkmm.verifycompressedproof('th1', theorem, labels, proofnumbers);
     expect(result2).to.equal(true);
+  });
+
+  it('can parse $p statements for regular proofs', () => {
+    initStateForTh1((
+      '|- t = t $= tt tze tpl tt weq tt tt weq tt a2 tt tze tpl tt weq tt tze tpl tt weq tt tt weq ' +
+      'wim tt a2 tt tze tpl tt tt a1 mp mp $.'
+    ).split(' '));
+
+    const okay: boolean = checkmm.parsep('th1');
+    expect(okay).to.equal(true);
+  });
+
+  it('can parse $p statements for compressed proofs', () => {
+    initStateForTh1((
+      '|- t = t $= ( tze tpl weq a2 wim a1 mp ) ABCZADZAADZAEZJJKFLIAAGHH $.'
+    ).split(' '));
+
+    const okay: boolean = checkmm.parsep('th1');
+    expect(okay).to.equal(true);
   });
 
 });
