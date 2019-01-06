@@ -872,3 +872,89 @@ export function parsep(label: string): boolean {
   return true;
 }
 
+export function parsee(label: string): boolean {
+  const newhyp: Expression = readexpression('e', label, '$.');
+  if (!newhyp) {
+    return false;
+  }
+
+  // Create new essential hypothesis
+  hypotheses[label] = {
+    first: newhyp,
+    second: false
+  };
+
+  scopes[scopes.length - 1].activehyp.push(label);
+  return true;
+}
+
+// Parse $a statement. Return true iff okay.
+export function parsea(label: string): boolean {
+  const newaxiom: Expression = readexpression('a', label, '$.');
+  if (!newaxiom) {
+    return false;
+  }
+
+  constructassertion(label, newaxiom);
+
+  return true;
+}
+
+// Parse $f statement. Return true iff okay.
+export function parsef(label: string): boolean {
+  if (!tokens.length) {
+    console.error('Unfinished $f statement' + label);
+    return false;
+  }
+
+  const type: string = tokens[0];
+
+  if (constants.find((value) => value === type) === undefined) {
+    console.error('First symbol in $f statement ' + label + ' is ' + type + ' which is not a constant');
+    return false;
+  }
+
+  tokens.shift();
+
+  if (!tokens.length) {
+    console.error('Unfinished $f statement' + label);
+    return false;
+  }
+
+  const variable: string = tokens[0];
+  if (!isactivevariable(variable)) {
+    console.error('Second symbol in $f statement ' + label + ' is ' + variable + ' which is not an active variable');
+    return false;
+  }
+  if (getfloatinghyp(variable).length) {
+    console.error('The variable ' + variable + ' appears in a second $f statement ' + label);
+    return false;
+  }
+
+  tokens.shift();
+
+  if (!tokens.length) {
+    console.error('Unfinished $f statement' + label);
+    return false;
+  }
+
+  if (tokens[0] !== '$.') {
+    console.error('Expected end of $f statement ' + label + ' but found ' + tokens[0]);
+    return false;
+  }
+
+  tokens.shift(); // Discard $. token
+
+  // Create new floating hypothesis
+  const newhyp: Expression = [];
+  newhyp.push(type);
+  newhyp.push(variable);
+  hypotheses[label] = {
+    first: newhyp,
+    second: true
+  };
+  scopes[scopes.length - 1].activehyp.push(label);
+  scopes[scopes.length - 1].floatinghyp[variable] = label;
+  return true;
+}
+
