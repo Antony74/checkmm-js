@@ -34,6 +34,7 @@
 // https://github.com/Antony74/checkmm-js/issues
 
 import * as fs from 'fs';
+import * as path from 'path';
 
 // checkmm uses a little bit of C++'s Standard Template Library.  Simulate it.
 export namespace std {
@@ -169,8 +170,8 @@ export function initTestValues(state: Partial<State>) {
   });
 }
 
-const nProofCount: number = 0;
-const nProofLimit: number = Number.MAX_SAFE_INTEGER;
+let nProofCount: number = 0;
+let nProofLimit: number = Number.MAX_SAFE_INTEGER;
 
 // Determine if a string is used as a label
 export function labelused(label: string): boolean {
@@ -956,5 +957,265 @@ export function parsef(label: string): boolean {
   scopes[scopes.length - 1].activehyp.push(label);
   scopes[scopes.length - 1].floatinghyp[variable] = label;
   return true;
+}
+
+// Parse labeled statement. Return true iff okay.
+export function parselabel(label: string): boolean {
+  if (constants.find((value) => value === label) !== undefined) {
+    console.error('Attempt to reuse constant ' + label + ' as a label');
+    return false;
+  }
+
+  if (variables.has(label)) {
+    console.error('Attempt to reuse variable ' + label + ' as a label');
+    return false;
+  }
+
+  if (labelused(label)) {
+    console.error('Attempt to reuse label ' + label);
+    return false;
+  }
+
+  if (!tokens.length) {
+    console.error('Unfinished labeled statement');
+    return false;
+  }
+
+  const type: string = tokens.shift();
+
+  let okay = true;
+  if (type === '$p') {
+    okay = parsep(label);
+    ++nProofCount;
+  } else if (type === '$e') {
+    okay = parsee(label);
+  } else if (type === '$a') {
+    okay = parsea(label);
+  } else if (type === '$f') {
+    okay = parsef(label);
+  } else {
+    console.error('Unexpected token ' + type + ' encountered');
+    return false;
+  }
+
+  return okay;
+}
+
+export function parsed(): boolean {
+  const dvars: Set<string> = new Set<string>();
+
+  while (tokens.length) {
+    const token: string = tokens[0];
+    if (token === '$.') {
+      break;
+    }
+
+    tokens.shift();
+
+    if (!isactivevariable(token)) {
+      console.error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
+      return false;
+    }
+
+    if (dvars.has(token)) {
+      console.error('$d statement mentions ' + token + ' twice');
+      return false;
+    }
+
+    dvars.add(token);
+  }
+
+  if (!tokens.length) {
+    console.error('Unterminated $d statement');
+    return false;
+  }
+
+  if (dvars.size < 2) {
+    console.error('Not enough items in $d statement');
+    return false;
+  }
+
+  // Record it
+  scopes[scopes.length - 1].disjvars.push(dvars);
+
+  tokens.shift(); // Discard $. token
+
+  return true;
+}
+
+// Parse $c statement. Return true iff okay.
+export function parsec(): boolean {
+  if (scopes.length > 1) {
+    console.error('$c statement occurs in inner block');
+    return false;
+  }
+
+  let listempty = true;
+  while (tokens.length) {
+    const token = tokens[0];
+
+    if (token === '$.') {
+      break;
+    }
+
+    tokens.shift();
+    listempty = false;
+
+    if (!ismathsymboltoken(token)) {
+      console.error('Attempt to declare ' + token + ' as a constant');
+      return false;
+    }
+    if (variables.has(token)) {
+      console.error('Attempt to redeclare variable ' + token + ' as a constant');
+      return false;
+    }
+    if (labelused(token)) {
+      console.error('Attempt to reuse label ' + token + ' as a constant');
+      return false;
+    }
+    if (constants.find((value) => value === token) !== undefined) {
+      console.error('Attempt to redeclare constant ' + token);
+      return false;
+    }
+    constants.push(token);
+  }
+
+  if (!tokens.length) {
+    console.error('Unterminated $c statement');
+    return false;
+  }
+
+  if (listempty) {
+    console.error('Unterminated $c statement');
+    return false;
+  }
+
+  tokens.shift(); // Discard $. token
+
+  return true;
+}
+
+// Parse $v statement. Return true iff okay.
+export function parsev(): boolean {
+  let listempty = true;
+  while (tokens.length) {
+    const token: string = tokens[0];
+
+    if (token === '$.') {
+      break;
+    }
+
+    tokens.shift();
+    listempty = false;
+
+    if (!ismathsymboltoken(token)) {
+      console.error('Attempt to declare ' + token + ' as a variable');
+      return false;
+    }
+    if (constants.find((value) => value === token) !== undefined) {
+      console.error('Attempt to redeclare constant ' + token + ' as a variable');
+      return false;
+    }
+    if (labelused(token)) {
+      console.error('Attempt to reuse label ' + token + ' as a variable');
+      return false;
+    }
+    if (isactivevariable(token)) {
+      console.error('Attempt to redeclare active variable ' + token);
+      return false;
+    }
+    variables.add(token);
+    scopes[scopes.length - 1].activevariables.add(token);
+  }
+
+  if (!tokens.length) {
+    console.error('Unterminated $v statement');
+    return false;
+  }
+
+  if (listempty) {
+    console.error('Empty $v statement');
+    return false;
+  }
+
+  tokens.shift(); // Discard $. token
+
+  return true;
+}
+
+const EXIT_FAILURE = 1;
+
+function main(argv: string[]): number {
+  if (argv.length === 3) {
+    const newProofLimit = parseInt(argv[2], 10);
+    if (newProofLimit) {
+      nProofLimit = newProofLimit;
+    }  else {
+      console.error('Invalid proof limit' + argv[2]);
+    }
+    argv.pop();
+  }
+
+  if (argv.length !== 2) {
+    console.error('Syntax: node checkmm.js <filename> [<proof-limit>]');
+    return EXIT_FAILURE;
+  }
+
+  let okay: boolean = readtokens(argv[1]);
+  if (!okay) {
+    return EXIT_FAILURE;
+  }
+
+  scopes.push(new Scope());
+
+  while (tokens.length) {
+    const token: string = tokens.shift();
+
+    okay = true;
+
+    if (islabeltoken(token)) {
+      okay = parselabel(token);
+    } else if (token === '$d') {
+      okay = parsed();
+    } else if (token === '${') {
+      scopes.push(new Scope());
+    } else if (token === '$}') {
+      scopes.pop();
+      if (!scopes.length) {
+        console.error('$} without corresponding ${');
+        return EXIT_FAILURE;
+      }
+    } else if (token === '$c') {
+      okay = parsec();
+    } else if (token === '$v') {
+      okay = parsev();
+    } else {
+      console.error('Unexpected token ' + token + ' encountered');
+      return EXIT_FAILURE;
+    }
+    if (!okay) {
+      return EXIT_FAILURE;
+    }
+
+    if (nProofCount >= nProofLimit) {
+      console.log('Proof limit reached');
+      console.log('Successfully verified ' + nProofCount + ' proofs');
+      return 0;
+    }
+  }
+
+  if (scopes.length > 1) {
+    console.error('${ without corresponding $}');
+    return EXIT_FAILURE;
+  }
+
+  console.log('Successfully verified ' + nProofCount + ' proofs\n');
+  return 0;
+}
+
+// Are we being run as a program or a library?
+if (process.argv.length >= 2 && path.basename(process.argv[1]) === path.basename(__filename)) {
+  // We are being run as a program
+  process.exitCode = main(process.argv.slice(1));
 }
 
