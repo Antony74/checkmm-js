@@ -136,7 +136,7 @@ export class Assertion {
 
 let assertions: {[token: string]: Assertion} = {};
 
-class Scope {
+export class Scope {
   activevariables: Set<string> = new Set<string>();
   // Labels of active hypotheses
   activehyp: string[] = [];
@@ -247,7 +247,7 @@ export function islabeltoken(token: string): boolean {
 
 // Determine if a token is a math symbol token.
 export function ismathsymboltoken(token: string): boolean {
-  return token.indexOf('$') !== -1;
+  return token.indexOf('$') === -1;
 }
 
 // Determine if a token consists solely of upper-case letters or question marks

@@ -385,5 +385,15 @@ describe('checkmm-js', () => {
     expect(okay).to.equal(true);
   });
 
+  it(' can parse $c statements', () => {
+    checkmm.initTestValues({
+      scopes: [new checkmm.Scope()],
+      tokens: '0 + = -> ( ) term wff |- $.'.split(' ')
+    });
+
+    const okay = checkmm.parsec();
+    expect(okay).to.equal(true);
+  });
+
 });
 
