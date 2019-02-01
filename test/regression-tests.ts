@@ -5,7 +5,11 @@ import * as child_process from 'child_process';
 // Change this function to run the particular MetaMath verifier you wish to test
 function runTest(cwd: string, filename: string, done: (succeeded: boolean) => void) {
 
-  const cmd: string = __dirname + '/../../graphmm/vc/x64/Release/graphmm.exe ' + filename;
+  let cmd: string = 'node ' + __dirname + '/../src/checkmm.js ' + filename;
+
+  if (process.env.verifier.trim() === 'cpp') {
+    cmd = __dirname + '/../../graphmm/vc/x64/Release/graphmm.exe ' + filename;
+  }
 
   child_process.exec(cmd, {cwd: cwd}, (err) => {
     done(err === null);

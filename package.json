@@ -18,9 +18,10 @@
   "scripts": {
     "install": "napa",
     "lint": "tslint test/*.ts src/*.ts",
-    "regression-tests": "tsc && mocha --delay test/regression-tests.js",
+    "regression-tests-js":  "tsc && set verifier=js  && mocha --delay test/regression-tests.js",
+    "regression-tests-cpp": "tsc && set verifier=cpp && mocha --delay test/regression-tests.js",
     "start": "tsc && node src/checkmm.js",
-    "test": "yarn unit-tests && yarn regression-tests",
+    "test": "yarn unit-tests && yarn regression-tests-js",
     "unit-tests": "tsc && mocha test/unit-tests.js"
   },
   "napa": {
