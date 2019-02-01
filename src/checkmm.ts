@@ -416,7 +416,7 @@ export function constructassertion(label: string, exp: Expression): Assertion {
         // Essential hypothesis
         assertion.hypotheses.unshift(hypvec[n]);
         for (let nExpression = 0; nExpression < hyp.first.length; ++nExpression) {
-          if (variables.has(hyp.first[nExpression]) === null) {
+          if (variables.has(hyp.first[nExpression])) {
             varsused.add(hyp.first[nExpression]);
           }
         }
@@ -739,7 +739,7 @@ export function parsep(label: string): boolean {
   // Now for the proof
 
   if (!tokens.length) {
-    console.log('Unfinished $p statement ' + label);
+    console.error('Unfinished $p statement ' + label);
     return false;
   }
 
@@ -760,7 +760,7 @@ export function parsep(label: string): boolean {
       tokens.shift();
       labels.push(token);
       if (token === label) {
-        console.log('Proof of theorem ' + label + ' refers to itself');
+        console.error('Proof of theorem ' + label + ' refers to itself');
         return false;
       } else if (assertion.hypotheses.find((value) => value === token) !== undefined) {
         console.error('Compressed proof of theorem ' + label + ' has mandatory hypothesis ' + token + ' in label list');
@@ -839,7 +839,7 @@ export function parsep(label: string): boolean {
       if (token === '?') {
         incomplete = true;
       } else if (token === label) {
-        console.log('Proof of theorem ' + label + ' refers to itself');
+        console.error('Proof of theorem ' + label + ' refers to itself');
         return false;
       } else if (!assertions[token] && !isactivehyp(token)) {
         console.error('Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement');
