@@ -238,7 +238,7 @@ export function ismmws(ch: string): boolean {
 export function islabeltoken(token: string): boolean {
   for (let nCh = 0; nCh < token.length; ++nCh) {
     const ch = token[nCh];
-    if (!std.isalnum(ch) || ch === '.' || ch === '-' || ch === '_') {
+    if (!(std.isalnum(ch) || ch === '.' || ch === '-' || ch === '_')) {
       return false;
     }
   }
