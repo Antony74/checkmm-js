@@ -7,9 +7,11 @@
   "license": "CC0-1.0",
   "dependencies": {
     "@types/chai": "^4.1.7",
+    "@types/lodash": "^4.14.120",
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.12.12",
     "chai": "^4.2.0",
+    "lodash": "^4.17.11",
     "mocha": "^5.2.0",
     "napa": "^3.0.0",
     "tslint": "^5.11.0",
@@ -18,7 +20,7 @@
   "scripts": {
     "install": "napa",
     "lint": "tslint test/*.ts src/*.ts",
-    "regression-tests-js":  "tsc && set verifier=js  && mocha --delay test/regression-tests.js",
+    "regression-tests-js": "tsc && set verifier=js  && mocha --delay test/regression-tests.js",
     "regression-tests-cpp": "tsc && set verifier=cpp && mocha --delay test/regression-tests.js",
     "start": "tsc && node src/checkmm.js",
     "test": "yarn unit-tests && yarn regression-tests-js",
