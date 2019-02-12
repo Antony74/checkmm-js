@@ -14,10 +14,14 @@
     "lodash": "^4.17.11",
     "mocha": "^5.2.0",
     "napa": "^3.0.0",
+    "ts-loader": "^5.3.3",
     "tslint": "^5.11.0",
-    "typescript": "^3.2.2"
+    "typescript": "^3.2.2",
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.2.3"
   },
   "scripts": {
+    "build": "webpack --mode production",
     "install": "napa",
     "lint": "tslint test/*.ts src/*.ts",
     "regression-tests-js": "tsc && set verifier=js  && mocha --delay test/regression-tests.js",
