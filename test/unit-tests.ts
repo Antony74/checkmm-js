@@ -1,23 +1,23 @@
 import {expect} from 'chai';
 import * as fs from 'fs';
 
-import * as checkmmlib from '../src/checkmm';
+import {Assertion, CheckMM, Expression, Scope, State, std} from '../src/checkmm';
 
 describe('checkmm-js', () => {
 
   it('can detect upper case', () => {
-    expect(checkmmlib.std.isupper('Z')).to.equal(true);
-    expect(checkmmlib.std.isupper('a')).to.equal(false);
+    expect(std.isupper('Z')).to.equal(true);
+    expect(std.isupper('a')).to.equal(false);
   });
 
   it('can detect alphanumerics', () => {
-    expect(checkmmlib.std.isalnum('1')).to.equal(true);
-    expect(checkmmlib.std.isalnum(')')).to.equal(false);
+    expect(std.isalnum('1')).to.equal(true);
+    expect(std.isalnum(')')).to.equal(false);
   });
 
   it('can determine if a label is used', () => {
 
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
 
     checkmm.setState({
       hypotheses: {
@@ -42,7 +42,7 @@ describe('checkmm-js', () => {
 
   it('can find a floating hypothesis', () => {
 
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
 
     checkmm.setState({
       scopes: [
@@ -63,14 +63,14 @@ describe('checkmm-js', () => {
 
   it('can get the next token', () => {
 
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
 
     const old = console.error;
     let errors = 0;
     console.error = () => ++errors;
 
     fs.writeFileSync('test.txt', 'hello world', {encoding: 'utf8'});
-    const hw: checkmmlib.std.IStream = new checkmmlib.std.IStream('test.txt');
+    const hw: std.IStream = new std.IStream('test.txt');
     expect(checkmm.nexttoken(hw)).to.equal('hello');
     expect(checkmm.nexttoken(hw)).to.equal('world');
     expect(checkmm.nexttoken(hw)).to.equal('');
@@ -78,7 +78,7 @@ describe('checkmm-js', () => {
     expect(errors).to.equal(0);
 
     fs.writeFileSync('test.txt', String.fromCharCode(127), {encoding: 'utf8'});
-    const invalid: checkmmlib.std.IStream = new checkmmlib.std.IStream('test.txt');
+    const invalid: std.IStream = new std.IStream('test.txt');
     expect(checkmm.nexttoken(invalid)).to.equal('');
     expect(errors).to.equal(1);
 
@@ -86,7 +86,7 @@ describe('checkmm-js', () => {
   });
 
   it('can read tokens', () => {
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
     const okay: boolean = checkmm.readtokens(__dirname + '/../node_modules/metamath-test/anatomy.mm');
     expect(okay).to.equal(true);
     expect(checkmm.tokens.length).to.equal(60);
@@ -94,7 +94,7 @@ describe('checkmm-js', () => {
 
   it('can construct assertions with disjoint variables', () => {
 
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
 
     checkmm.setState({
       hypotheses: {
@@ -124,7 +124,7 @@ describe('checkmm-js', () => {
       variables: new Set<string>(['ps', 'ph', 'x'])
     });
     const expression = '|- ( ph -> A. x ph )'.split(' ');
-    const assertion: checkmmlib.Assertion = checkmm.constructassertion('ax-17', expression);
+    const assertion: Assertion = checkmm.constructassertion('ax-17', expression);
     expect(assertion.hypotheses).to.deep.equal(['wph', 'vx']);
     expect(assertion.disjvars).to.deep.equal([['ph', 'x']]);
     expect(assertion.expression).to.deep.equal(expression);
@@ -132,21 +132,21 @@ describe('checkmm-js', () => {
 
   it('can read expressions', () => {
 
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
 
     checkmm.setState({
       tokens: '|- ( ph -> ( ps -> ph ) ) $. $( Axiom _Frege_.'.split(' '),
       constants: ['|-', '(', ')', '->', 'ph', 'ps']
     });
-    const expression: checkmmlib.Expression = checkmm.readexpression('a', 'ax-1', '$.');
+    const expression: Expression = checkmm.readexpression('a', 'ax-1', '$.');
     expect(expression).to.deep.equal('|- ( ph -> ( ps -> ph ) )'.split(' '));
   });
 
   it('can make substituions', () => {
 
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
 
-    const expression: checkmmlib.Expression = checkmm.makesubstitution(
+    const expression: Expression = checkmm.makesubstitution(
       ['weather', 'is', 'sunny'],
       {
         sunny: ['raining', 'cats', 'and', 'dogs']
@@ -156,7 +156,7 @@ describe('checkmm-js', () => {
   });
 
   it('can get proof numbers', () => {
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
     const proofnumbers: number[] = checkmm.getproofnumbers(
       'pm5.32',
       'ABCDZEZABFZEZFZACFZEZFZDZABGZACGZDPAQTDZERUADUCOUFABCHIAQTJRUAHKUDSUEUBABLACLMN'
@@ -168,7 +168,7 @@ describe('checkmm-js', () => {
   });
 
   it('can verify a proof step references an assertion', () => {
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
     checkmm.setState({
       assertions: {
         'ax-mp': {
@@ -197,7 +197,7 @@ describe('checkmm-js', () => {
       }
     });
 
-    const result: checkmmlib.Expression[] = checkmm.verifyassertionref('mpdb', 'ax-mp', [
+    const result: Expression[] = checkmm.verifyassertionref('mpdb', 'ax-mp', [
       ['wff', 'ps'],
       ['wff', 'ch'],
       ['wff', 'ph'],
@@ -214,7 +214,7 @@ describe('checkmm-js', () => {
   });
 
   it('can verify a proof step references an assertion with disjoint variable conditions', () => {
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
     checkmm.setState({
       assertions: {
         'ax-17': {
@@ -244,7 +244,7 @@ describe('checkmm-js', () => {
       ]
     });
 
-    const result: checkmmlib.Expression[] = checkmm.verifyassertionref('a17d', 'ax-17', [
+    const result: Expression[] = checkmm.verifyassertionref('a17d', 'ax-17', [
       ['wff', '(', 'ps', '->', 'A.', 'x', 'ps', ')'],
       ['wff', 'ph'],
       ['wff', 'ps'],
@@ -258,8 +258,8 @@ describe('checkmm-js', () => {
     ]);
   });
 
-  function initStateForTh1(tokens: string[], checkmm: checkmmlib.CheckMM) {
-    const testValues: Partial<checkmmlib.State> = {
+  function initStateForTh1(tokens: string[], checkmm: CheckMM) {
+    const testValues: Partial<State> = {
       hypotheses: {
         tt: {
           first: ['term', 't'],
@@ -351,11 +351,11 @@ describe('checkmm-js', () => {
 
   it('can verify regular and compressed proofs', () => {
 
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
 
     initStateForTh1([], checkmm);
 
-    const theorem: checkmmlib.Assertion = {
+    const theorem: Assertion = {
       hypotheses: ['tt'],
       disjvars: [],
       expression: ['|-', 't', '=', 't']
@@ -373,14 +373,14 @@ describe('checkmm-js', () => {
 
   it('can verify compressed proofs', () => {
 
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
 
     initStateForTh1([], checkmm);
 
     const labels = 'tze tpl weq a2 wim a1 mp'.split(' ');
     const proofnumbers = checkmm.getproofnumbers('th1', 'ABCZADZAADZAEZJJKFLIAAGHH');
 
-    const theorem: checkmmlib.Assertion = {
+    const theorem: Assertion = {
       hypotheses: ['tt'],
       disjvars: [],
       expression: ['|-', 't', '=', 't']
@@ -391,7 +391,7 @@ describe('checkmm-js', () => {
   });
 
   it('can parse $p statements for regular proofs', () => {
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
     initStateForTh1((
       '|- t = t $= tt tze tpl tt weq tt tt weq tt a2 tt tze tpl tt weq tt tze tpl tt weq tt tt weq ' +
       'wim tt a2 tt tze tpl tt tt a1 mp mp $.'
@@ -402,7 +402,7 @@ describe('checkmm-js', () => {
   });
 
   it('can parse $p statements for compressed proofs', () => {
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
     initStateForTh1((
       '|- t = t $= ( tze tpl weq a2 wim a1 mp ) ABCZADZAADZAEZJJKFLIAAGHH $.'
     ).split(' '), checkmm);
@@ -412,9 +412,9 @@ describe('checkmm-js', () => {
   });
 
   it('can parse $c statements', () => {
-    const checkmm = new checkmmlib.CheckMM();
+    const checkmm = new CheckMM();
     checkmm.setState({
-      scopes: [new checkmmlib.Scope()],
+      scopes: [new Scope()],
       tokens: '0 + = -> ( ) term wff |- $.'.split(' ')
     });
 
