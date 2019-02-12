@@ -1,6 +1,6 @@
 
 module.exports = {
-  entry: './src/checkmm.ts',
+  entry: './src/checkmmex.ts',
   output: {
     filename: 'index.js',
     path: __dirname
