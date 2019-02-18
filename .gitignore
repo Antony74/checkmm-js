@@ -1,7 +1,4 @@
 node_modules
-test/*.js
-src/*.js
+lib
 test.txt
 *.mm
-*.map
-index.js

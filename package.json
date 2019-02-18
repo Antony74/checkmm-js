@@ -18,17 +18,14 @@
     "superagent": "^4.1.0",
     "ts-loader": "^5.3.3",
     "tslint": "^5.11.0",
-    "typescript": "^3.2.2",
-    "webpack": "^4.29.3",
-    "webpack-cli": "^3.2.3"
+    "typescript": "^3.2.2"
   },
   "scripts": {
-    "build": "webpack --mode production",
     "install": "napa",
-    "lint": "tslint test/*.ts src/*.ts",
+    "lint": "tslint test/*.ts lib/*.ts",
     "regression-tests-js": "tsc && set verifier=js  && mocha --delay test/regression-tests.js",
     "regression-tests-cpp": "tsc && set verifier=cpp && mocha --delay test/regression-tests.js",
-    "start": "tsc && node src/checkmm.js",
+    "start": "tsc && node lib/checkmm.js",
     "test": "yarn unit-tests && yarn regression-tests-js",
     "unit-tests": "tsc && mocha test/unit-tests.js"
   },
