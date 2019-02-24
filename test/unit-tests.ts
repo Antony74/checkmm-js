@@ -87,7 +87,7 @@ describe('checkmm-js', () => {
 
   it('can read tokens', () => {
     const checkmm = new CheckMM();
-    const okay: boolean = checkmm.readtokens(__dirname + '/../node_modules/metamath-test/anatomy.mm');
+    const okay: boolean = checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
     expect(okay).to.equal(true);
     expect(checkmm.tokens.length).to.equal(60);
   });
