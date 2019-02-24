@@ -427,5 +427,17 @@ describe('checkmm-js', () => {
     expect(okay).to.equal(true);
   });
 
+  it('can verify demo0.mm', () => {
+
+    const old = console.log;
+    console.log = () => {};
+
+    const checkmm = new CheckMM();
+    const okay: boolean = checkmm.checkmm(__dirname + '/../../node_modules/metamath-test/demo0.mm');
+    expect(okay).to.equal(true);
+
+    console.log = old;
+  });
+
 });
 
