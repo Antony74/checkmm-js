@@ -15,7 +15,8 @@
     "lodash": "^4.17.11",
     "mocha": "^5.2.0",
     "napa": "^3.0.0",
-    "superagent": "^4.1.0",
+    "superagent": "3.6.0",
+    "superagent-mock": "^3.7.0",
     "ts-loader": "^5.3.3",
     "tslint": "^5.11.0",
     "typescript": "^3.2.2"

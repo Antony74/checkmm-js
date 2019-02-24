@@ -1,7 +1,9 @@
-import {expect} from 'chai';
 import * as fs from 'fs';
+import {expect} from 'chai';
+import {default as superagentMock} from 'superagent-mock';
 
 import {Assertion, CheckMM, Expression, Scope, State, std} from '../src/checkmm';
+import { CheckMMex } from '../src/checkmmex';
 
 describe('checkmm-js', () => {
 
@@ -437,6 +439,35 @@ describe('checkmm-js', () => {
     expect(okay).to.equal(true);
 
     console.log = old;
+  });
+
+  it('can asynchronously read tokens', (done) => {
+
+    const url = 'http://loclhost:8080/anatomy.mm';
+
+    const config = [
+      {
+        pattern: '(.*)',
+        fixtures: (match, params, headers, context) => {
+          return fs.readFileSync(__dirname + '/../../node_modules/metamath-test/anatomy.mm', {encoding: 'utf8'});
+        },
+        get: function (match, data) {
+          return {
+            body: data
+          };
+        }
+      }
+    ];
+
+    const checkmm = new CheckMMex();
+
+    superagentMock(checkmm.superagent, config);
+
+    checkmm.readTokensAsync(url, (error: string, tokens: string[]) => {
+      expect(error).to.equal('');
+//      expect(tokens.length).to.equal(60);
+      done();
+    });
   });
 
 });
