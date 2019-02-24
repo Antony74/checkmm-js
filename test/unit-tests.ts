@@ -69,17 +69,22 @@ describe('checkmm-js', () => {
     let errors = 0;
     console.error = () => ++errors;
 
-    fs.writeFileSync('test.txt', 'hello world', {encoding: 'utf8'});
-    const hw: std.IStream = new std.IStream('test.txt');
-    expect(checkmm.nexttoken(hw)).to.equal('hello');
-    expect(checkmm.nexttoken(hw)).to.equal('world');
-    expect(checkmm.nexttoken(hw)).to.equal('');
-    expect(checkmm.nexttoken(hw)).to.equal('');
+    let input = 'hello world';
+    let token = '';
+
+    ({token, input} = checkmm.nexttoken(input));
+    expect(token).to.equal('hello');
+    ({token, input} = checkmm.nexttoken(input));
+    expect(token).to.equal('world');
+    ({token, input} = checkmm.nexttoken(input));
+    expect(token).to.equal('');
+    ({token, input} = checkmm.nexttoken(input));
+    expect(token).to.equal('');
     expect(errors).to.equal(0);
 
-    fs.writeFileSync('test.txt', String.fromCharCode(127), {encoding: 'utf8'});
-    const invalid: std.IStream = new std.IStream('test.txt');
-    expect(checkmm.nexttoken(invalid)).to.equal('');
+    input = String.fromCharCode(127);
+    ({token, input} = checkmm.nexttoken(input));
+    expect(token).to.equal('');
     expect(errors).to.equal(1);
 
     console.error = old;
@@ -87,7 +92,7 @@ describe('checkmm-js', () => {
 
   it('can read tokens', () => {
     const checkmm = new CheckMM();
-    const okay: boolean = checkmm.readtokens(__dirname + '/../node_modules/metamath-test/anatomy.mm');
+    const okay: boolean = checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
     expect(okay).to.equal(true);
     expect(checkmm.tokens.length).to.equal(60);
   });

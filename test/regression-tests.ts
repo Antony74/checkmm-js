@@ -8,7 +8,7 @@ function runTest(cwd: string, filename: string, done: (succeeded: boolean) => vo
   let cmd: string = 'node ' + __dirname + '/../src/checkmm.js ' + filename;
 
   if (process.env.verifier.trim() === 'cpp') {
-    cmd = __dirname + '/../../graphmm/vc/x64/Release/graphmm.exe ' + filename;
+    cmd = __dirname + '/../../../graphmm/vc/x64/Release/graphmm.exe ' + filename;
   }
 
   child_process.exec(cmd, {cwd: cwd}, (err) => {
@@ -42,7 +42,7 @@ function parseFilename(filename: string): ParsedFilename {
 
 }
 
-const pathToTests = __dirname + '/../node_modules/metamath-test';
+const pathToTests = __dirname + '/../../node_modules/metamath-test';
 
 fs.readdir(pathToTests, (err: NodeJS.ErrnoException, files: string[]) => {
   if (err) {

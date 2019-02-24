@@ -66,29 +66,6 @@ export namespace std {
     return s3;
   }
 
-  export class IStream {
-    private fd: number;
-    private buffer: Buffer = Buffer.alloc(1);
-    private arr: string[] = [];
-
-    constructor(filename: string) {
-      this.fd = fs.openSync(filename, 'r');
-    }
-
-    get(): string {
-      if (this.arr.length) {
-        return this.arr.shift();
-      } else {
-        const bytesRead = fs.readSync(this.fd, this.buffer, 0, 1, null);
-        return (bytesRead === 1) ? this.buffer.toString() : null;
-      }
-    }
-
-    unget(s: string) {
-      this.arr.unshift(s);
-    }
-  }
-
   export class Pair<T1, T2> {
     first: T1;
     second: T2;
@@ -109,6 +86,11 @@ function arraysequal(arr1: any[], arr2: any[]): boolean {
   }
 
   return true;
+}
+
+interface NextToken {
+  token: string;
+  input: string;
 }
 
 export type Expression = string[];
@@ -261,25 +243,27 @@ export class CheckMM extends State {
     return true;
   }
 
-  nexttoken(input: std.IStream): string {
+  nexttoken(input: string): NextToken {
     let ch: string = null;
     let token: string = '';
 
     // Skip whitespace
-    while (true) {
-      ch = input.get();
+    while (input.length) {
+      ch = input[0];
+      input = input.slice(1);
       if (ch === null || !this.ismmws(ch)) {
         break;
       }
     }
 
     if (ch !== null) {
-      input.unget(ch);
+      input = ch + input;
     }
 
     // Get token
-    while (true) {
-      ch = input.get();
+    while (input.length) {
+      ch = input[0];
+      input = input.slice(1);
 
       if (ch === null || this.ismmws(ch)) {
         break;
@@ -287,13 +271,13 @@ export class CheckMM extends State {
 
       if (ch < '!' || ch > '~') {
         console.error('Invalid character read with code ' + ch.charCodeAt(0));
-        return '';
+        return {token: '', input: input};
       }
 
       token += ch;
     }
 
-    return token;
+    return {token: token, input: input};
   }
 
   readtokens(filename: string): boolean {
@@ -304,7 +288,7 @@ export class CheckMM extends State {
 
     this.mmFileNames.add(filename);
 
-    const fin = new std.IStream(filename);
+    let input = fs.readFileSync(filename, {encoding: 'utf8'});
 
     let incomment = false;
     let infileinclusion = false;
@@ -312,7 +296,7 @@ export class CheckMM extends State {
 
     let token: string = '';
     while (true) {
-      token = this.nexttoken(fin);
+      ({token, input} = this.nexttoken(input));
       if (!token.length) {
         break;
         }

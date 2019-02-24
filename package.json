@@ -23,11 +23,11 @@
   "scripts": {
     "install": "napa",
     "lint": "tslint test/*.ts lib/*.ts",
-    "regression-tests-js": "tsc && set verifier=js  && mocha --delay test/regression-tests.js",
-    "regression-tests-cpp": "tsc && set verifier=cpp && mocha --delay test/regression-tests.js",
-    "start": "tsc && node lib/checkmm.js",
+    "regression-tests-js": "tsc && set verifier=js  && mocha --delay lib/test/regression-tests.js",
+    "regression-tests-cpp": "tsc && set verifier=cpp && mocha --delay lib/test/regression-tests.js",
+    "start": "tsc && node lib/src/checkmm.js",
     "test": "yarn unit-tests && yarn regression-tests-js",
-    "unit-tests": "tsc && mocha test/unit-tests.js"
+    "unit-tests": "tsc && mocha lib/test/unit-tests.js"
   },
   "napa": {
     "metamath-test": "https://github.com/david-a-wheeler/metamath-test.git"
