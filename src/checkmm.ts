@@ -1125,20 +1125,14 @@ export class CheckMM extends State {
     return true;
   }
 
-  checkmm(filename: string): boolean {
-    this.setState({});
-
-    let okay: boolean = this.readtokens(filename);
-    if (!okay) {
-      return false;
-    }
+  checkmm(): boolean {
 
     this.scopes.push(new Scope());
 
     while (this.tokens.length) {
       const token: string = this.tokens.shift();
 
-      okay = true;
+      let okay = true;
 
       if (this.islabeltoken(token)) {
         okay = this.parselabel(token);
@@ -1202,7 +1196,14 @@ function main(argv: string[]): number {
     return EXIT_FAILURE;
   }
 
-  const okay: boolean = checkmm.checkmm(argv[1]);
+  checkmm.setState({});
+
+  let okay: boolean = checkmm.readtokens(argv[1]);
+  if (!okay) {
+    return EXIT_FAILURE;
+  }
+
+  okay = checkmm.checkmm();
   return okay ? 0 : EXIT_FAILURE;
 }
 

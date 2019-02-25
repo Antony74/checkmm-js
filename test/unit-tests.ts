@@ -435,21 +435,29 @@ describe('checkmm-js', () => {
     console.log = () => {};
 
     const checkmm = new CheckMM();
-    const okay: boolean = checkmm.checkmm(__dirname + '/../../node_modules/metamath-test/demo0.mm');
+    checkmm.setState({});
+
+    let okay: boolean = checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/demo0.mm');
+    expect(okay).to.equal(true);
+
+    okay = checkmm.checkmm();
     expect(okay).to.equal(true);
 
     console.log = old;
   });
 
-  it('can asynchronously read tokens', (done) => {
+  it('can asynchronously verify demo0.mm', (done) => {
 
-    const url = 'http://loclhost:8080/anatomy.mm';
+    const old = console.log;
+    console.log = () => {};
+
+    const url = 'http://loclhost:8080/demo0.mm';
 
     const config = [
       {
         pattern: '(.*)',
         fixtures: (match, params, headers, context) => {
-          return fs.readFileSync(__dirname + '/../../node_modules/metamath-test/anatomy.mm', {encoding: 'utf8'});
+          return fs.readFileSync(__dirname + '/../../node_modules/metamath-test/demo0.mm', {encoding: 'utf8'});
         },
         get: function (match, data) {
           return {
@@ -465,7 +473,12 @@ describe('checkmm-js', () => {
 
     checkmm.readTokensAsync(url, (error: string) => {
       expect(error).to.equal('');
-      expect(checkmm.getState().tokens.length).to.equal(60);
+      expect(checkmm.getState().tokens.length).to.equal(166);
+      const okay: boolean = checkmm.checkmm();
+      expect(okay).to.equal(true);
+
+      console.log = old;
+
       done();
     });
   });
