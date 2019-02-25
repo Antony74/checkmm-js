@@ -463,9 +463,9 @@ describe('checkmm-js', () => {
 
     superagentMock(checkmm.superagent, config);
 
-    checkmm.readTokensAsync(url, (error: string, tokens: string[]) => {
+    checkmm.readTokensAsync(url, (error: string) => {
       expect(error).to.equal('');
-//      expect(tokens.length).to.equal(60);
+      expect(checkmm.getState().tokens.length).to.equal(60);
       done();
     });
   });
