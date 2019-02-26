@@ -35,7 +35,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import _ from 'lodash';
+import cloneDeep from 'lodash.clonedeep';
 
 // checkmm uses a little bit of C++'s Standard Template Library.  Simulate it.
 export namespace std {
@@ -137,7 +137,7 @@ export class CheckMM extends State {
     const defaultState = new State();
     const state = {
       ...defaultState,
-      ...partialState
+      ...cloneDeep(partialState)
     };
 
     Object.keys(state).forEach((key: string) => {
@@ -152,7 +152,7 @@ export class CheckMM extends State {
       state[key] = this[key];
     });
 
-    return _.cloneDeep(state);
+    return cloneDeep(state);
   }
 
   // Determine if a string is used as a label
