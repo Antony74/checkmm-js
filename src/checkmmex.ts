@@ -1,9 +1,6 @@
 import {CheckMM} from './checkmm';
-import * as superagent from 'superagent';
 
 export class CheckMMex extends CheckMM {
-
-  superagent = superagent;
 
   readTokensAsync(url: string, callback: (error: string) => void): void {
 
@@ -15,9 +12,9 @@ export class CheckMMex extends CheckMM {
 
     this.mmFileNames.add(url);
 
-    this.superagent.get(url).then((response: superagent.Response) => {
-
-      let input = response.body;
+    fetch(url).then((response: Response) => {
+      return response.text();
+    }).then((input: string) => {
       let incomment = false;
       let infileinclusion = false;
       let newfilename: string = '';

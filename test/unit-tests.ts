@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import {expect} from 'chai';
-import {default as superagentMock} from 'superagent-mock';
+import fetchMock from 'fetch-mock';
 
 import {Assertion, CheckMM, Expression, Scope, State, std} from '../src/checkmm';
 import { CheckMMex } from '../src/checkmmex';
@@ -453,23 +453,9 @@ describe('checkmm-js', () => {
 
     const url = 'http://loclhost:8080/demo0.mm';
 
-    const config = [
-      {
-        pattern: '(.*)',
-        fixtures: (match, params, headers, context) => {
-          return fs.readFileSync(__dirname + '/../../node_modules/metamath-test/demo0.mm', {encoding: 'utf8'});
-        },
-        get: function (match, data) {
-          return {
-            body: data
-          };
-        }
-      }
-    ];
-
     const checkmm = new CheckMMex();
 
-    superagentMock(checkmm.superagent, config);
+    fetchMock.get('*', fs.readFileSync(__dirname + '/../../node_modules/metamath-test/demo0.mm', {encoding: 'utf8'}));
 
     checkmm.readTokensAsync(url, (error: string) => {
       expect(error).to.equal('');
