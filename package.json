@@ -21,7 +21,9 @@
     "napa": "^3.0.0",
     "ts-loader": "^5.3.3",
     "tslint": "^5.11.0",
-    "typescript": "^3.2.2"
+    "typescript": "^3.2.2",
+    "webpack": "^4.29.5",
+    "webpack-cli": "^3.2.3"
   },
   "scripts": {
     "install": "napa",
@@ -30,7 +32,8 @@
     "regression-tests-cpp": "tsc && set verifier=cpp && mocha --delay lib/test/regression-tests.js",
     "start": "tsc && node lib/src/checkmm.js",
     "test": "yarn unit-tests && yarn regression-tests-js",
-    "unit-tests": "tsc && mocha lib/test/unit-tests.js"
+    "unit-tests": "tsc && mocha lib/test/unit-tests.js",
+    "build": "webpack --mode production"
   },
   "napa": {
     "metamath-test": "https://github.com/david-a-wheeler/metamath-test.git"
