@@ -17,13 +17,10 @@ module.exports = {
     node: {
       fs: 'empty'
     },
-    externals: {
-      'lodash.clonedeep': 'lodash.clonedeep',
-      'node-fetch': 'node-fetch'
-      },
     output: {
       path: __dirname,
-      filename: 'index.js'
+      filename: 'index.js',
+      library: 'checkmm'
     }
 };
 
