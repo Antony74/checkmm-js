@@ -26,7 +26,7 @@
     "webpack-cli": "^3.2.3"
   },
   "scripts": {
-    "install": "napa",
+    "install": "node --eval napa=require('napa/cli');napa?napa.cli([]):0;",
     "lint": "tslint test/*.ts lib/*.ts",
     "regression-tests-js": "tsc && set verifier=js  && mocha --delay lib/test/regression-tests.js",
     "regression-tests-cpp": "tsc && set verifier=cpp && mocha --delay lib/test/regression-tests.js",
