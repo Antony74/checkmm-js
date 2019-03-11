@@ -128,9 +128,13 @@ export class State {
   nProofCount: number = 0;
   nProofLimit: number = Number.MAX_SAFE_INTEGER;
   mmFileNames: Set<string> = new Set<string>();
+  logs: string = '';
+  errors: string = '';
 }
 
-export class CheckMM extends State {
+export class CheckMM {
+
+  protected state: State = new State();
 
   setState(partialState: Partial<State>) {
 
@@ -140,31 +144,43 @@ export class CheckMM extends State {
       ...cloneDeep(partialState)
     };
 
-    Object.keys(state).forEach((key: string) => {
-      this[key] = state[key];
-    });
+    this.state = state;
   }
 
   getState(): State {
-    const state = new State();
+    return cloneDeep(this.state);
+  }
 
-    Object.keys(state).forEach((key: string) => {
-      state[key] = this[key];
-    });
+  log(s: string): void {
+    this.state.logs += s + '\n';
+  }
 
-    return cloneDeep(state);
+  error(s: string): void {
+    this.state.errors += s + '\n';
+  }
+
+  getLogs(): string {
+    return this.state.logs;
+  }
+
+  getErrors(): string {
+    return this.state.errors;
+  }
+
+  setProofLimit(n: number): void {
+    this.state.nProofLimit = n;
   }
 
   // Determine if a string is used as a label
   labelused(label: string): boolean {
-    return (this.hypotheses[label] || this.assertions[label]) ? true : false;
+    return (this.state.hypotheses[label] || this.state.assertions[label]) ? true : false;
   }
 
   // Find active floating hypothesis corresponding to variable, or empty string
   // if there isn't one.
   getfloatinghyp(variable: string): string {
-    for (let nScope = 0; nScope < this.scopes.length; ++nScope) {
-      const loc: string = this.scopes[nScope].floatinghyp[variable];
+    for (let nScope = 0; nScope < this.state.scopes.length; ++nScope) {
+      const loc: string = this.state.scopes[nScope].floatinghyp[variable];
       if (loc !== undefined) {
         return loc;
       }
@@ -174,8 +190,8 @@ export class CheckMM extends State {
   }
 
   isactivevariable(str: string): boolean {
-    for (let nScope = 0; nScope < this.scopes.length; ++nScope) {
-      if (this.scopes[nScope].activevariables.has(str)) {
+    for (let nScope = 0; nScope < this.state.scopes.length; ++nScope) {
+      if (this.state.scopes[nScope].activevariables.has(str)) {
         return true;
       }
     }
@@ -183,8 +199,8 @@ export class CheckMM extends State {
   }
 
   isactivehyp(str: string): boolean {
-    for (let nScope = 0; nScope < this.scopes.length; ++nScope) {
-      if (this.scopes[nScope].activehyp.find((value) => value === str) !== undefined) {
+    for (let nScope = 0; nScope < this.state.scopes.length; ++nScope) {
+      if (this.state.scopes[nScope].activehyp.find((value) => value === str) !== undefined) {
         return true;
       }
     }
@@ -197,8 +213,8 @@ export class CheckMM extends State {
     if (var1 === var2) {
       return false;
     }
-    for (let nScope = 0; nScope < this.scopes.length; ++nScope) {
-      const scope = this.scopes[nScope];
+    for (let nScope = 0; nScope < this.state.scopes.length; ++nScope) {
+      const scope = this.state.scopes[nScope];
       for (let nDisjvar = 0; nDisjvar !== scope.disjvars.length; ++nDisjvar) {
         const disjvar = scope.disjvars[nDisjvar];
         if (disjvar.has(var1)
@@ -270,7 +286,7 @@ export class CheckMM extends State {
       }
 
       if (ch < '!' || ch > '~') {
-        console.error('Invalid character read with code ' + ch.charCodeAt(0));
+        this.error('Invalid character read with code ' + ch.charCodeAt(0));
         return {token: '', input: input};
       }
 
@@ -281,12 +297,12 @@ export class CheckMM extends State {
   }
 
   readtokens(filename: string): boolean {
-    const alreadyencountered: boolean = this.mmFileNames.has(filename);
+    const alreadyencountered: boolean = this.state.mmFileNames.has(filename);
     if (alreadyencountered) {
       return true;
     }
 
-    this.mmFileNames.add(filename);
+    this.state.mmFileNames.add(filename);
 
     let input = fs.readFileSync(filename, {encoding: 'utf8'});
 
@@ -307,11 +323,11 @@ export class CheckMM extends State {
           continue;
         }
         if (token.indexOf('$(') !== -1) {
-          console.error('Characters $( found in a comment');
+          this.error('Characters $( found in a comment');
           return false;
         }
         if (token.indexOf('$)') !== -1) {
-          console.error('Characters $) found in a comment');
+          this.error('Characters $) found in a comment');
           return false;
         }
         continue;
@@ -326,14 +342,14 @@ export class CheckMM extends State {
       if (infileinclusion) {
         if (!newfilename.length) {
           if (token.indexOf('$') !== -1) {
-            console.error('Filename ' + token + ' contains a $');
+            this.error('Filename ' + token + ' contains a $');
             return false;
           }
           newfilename = token;
           continue;
         } else {
           if (token !== '$]') {
-            console.error('Didn\'t find closing file inclusion delimiter');
+            this.error('Didn\'t find closing file inclusion delimiter');
             return false;
           }
 
@@ -351,17 +367,17 @@ export class CheckMM extends State {
         continue;
       }
 
-      this.tokens.push(token);
+      this.state.tokens.push(token);
     }
 
     if (incomment) {
-      console.error('Unclosed comment');
+      this.error('Unclosed comment');
       return false;
     }
 
     if (infileinclusion) {
-        console.error('Unfinished file inclusion command');
-        return false;
+      this.error('Unfinished file inclusion command');
+      return false;
     }
 
     return true;
@@ -382,15 +398,15 @@ export class CheckMM extends State {
 
     for (let n = 0; n < exp.length; ++n) {
       const variable = exp[n];
-      if (this.variables.has(variable)) {
+      if (this.state.variables.has(variable)) {
         varsused.add(variable);
       }
     }
 
-    for (let nScope = this.scopes.length - 1; nScope >= 0; --nScope) {
-      const hypvec: string[] = this.scopes[nScope].activehyp;
+    for (let nScope = this.state.scopes.length - 1; nScope >= 0; --nScope) {
+      const hypvec: string[] = this.state.scopes[nScope].activehyp;
       for (let n = hypvec.length - 1; n >= 0; --n) {
-        const hyp: Hypothesis = this.hypotheses[hypvec[n]];
+        const hyp: Hypothesis = this.state.hypotheses[hypvec[n]];
         if (hyp.second && varsused.has(hyp.first[1])) {
           // Mandatory floating hypothesis
           assertion.hypotheses.unshift(hypvec[n]);
@@ -398,7 +414,7 @@ export class CheckMM extends State {
           // Essential hypothesis
           assertion.hypotheses.unshift(hypvec[n]);
           for (let nExpression = 0; nExpression < hyp.first.length; ++nExpression) {
-            if (this.variables.has(hyp.first[nExpression])) {
+            if (this.state.variables.has(hyp.first[nExpression])) {
               varsused.add(hyp.first[nExpression]);
             }
           }
@@ -407,8 +423,8 @@ export class CheckMM extends State {
     }
 
     // Determine mandatory disjoint variable restrictions
-    for (let nScope = 0; nScope < this.scopes.length; ++nScope) {
-      const disjvars: Set<string>[] = this.scopes[nScope].disjvars;
+    for (let nScope = 0; nScope < this.state.scopes.length; ++nScope) {
+      const disjvars: Set<string>[] = this.state.scopes[nScope].disjvars;
       for (let nDisjvars = 0; nDisjvars < disjvars.length; ++ nDisjvars) {
         const dset: string[] = [];
         std.set_intersection(disjvars[nDisjvars], varsused).forEach((value) => {
@@ -423,7 +439,7 @@ export class CheckMM extends State {
       }
     }
 
-    this.assertions[label] = assertion;
+    this.state.assertions[label] = assertion;
     return assertion;
   }
 
@@ -432,43 +448,43 @@ export class CheckMM extends State {
 
     const exp: Expression = [];
 
-    if (!this.tokens.length) {
-      console.error('Unfinished $' + stattype + ' statement ' + label);
+    if (!this.state.tokens.length) {
+      this.error('Unfinished $' + stattype + ' statement ' + label);
       return null;
     }
 
-    const type: string = this.tokens[0];
+    const type: string = this.state.tokens[0];
 
-    if (this.constants.find((value) => type === value) === undefined) {
-      console.error('First symbol in $' + stattype + ' statement ' + label + ' is ' + type + ' which is not a constant');
+    if (this.state.constants.find((value) => type === value) === undefined) {
+      this.error('First symbol in $' + stattype + ' statement ' + label + ' is ' + type + ' which is not a constant');
       return null;
     }
 
-    this.tokens.shift();
+    this.state.tokens.shift();
 
     exp.push(type);
 
-    while (this.tokens.length) {
-      const token = this.tokens.shift();
+    while (this.state.tokens.length) {
+      const token = this.state.tokens.shift();
 
       if (token === terminator) {
         break;
       }
 
-      if (this.constants.find((value) => value === token) === undefined
+      if (this.state.constants.find((value) => value === token) === undefined
       &&  this.getfloatinghyp(token).length === 0) {
-        console.error('In $' + stattype + ' statement ' + label
-                    + ' token ' + token
-                    + ' found which is not a constant or variable in an'
-                    + ' active $f statement');
+        this.error('In $' + stattype + ' statement ' + label
+                 + ' token ' + token
+                 + ' found which is not a constant or variable in an'
+                 + ' active $f statement');
         return null;
       }
 
       exp.push(token);
     }
 
-    if (!this.tokens.length) {
-      console.error('Unfinished $' + stattype + ' statement ' + label);
+    if (!this.state.tokens.length) {
+      this.error('Unfinished $' + stattype + ' statement ' + label);
       return null;
     }
 
@@ -499,7 +515,7 @@ export class CheckMM extends State {
         const addval: number = proof.charCodeAt(n) - ('A'.charCodeAt(0) - 1);
 
         if (num > Number.MAX_SAFE_INTEGER / 20 || 20 * num > Number.MAX_SAFE_INTEGER - addval) {
-          console.error('Overflow computing numbers in compressed proof of ' + label);
+          this.error('Overflow computing numbers in compressed proof of ' + label);
           return null;
         }
 
@@ -510,7 +526,7 @@ export class CheckMM extends State {
         const addval: number = proof.charCodeAt(n) - 'T'.charCodeAt(0);
 
         if (num > Number.MAX_SAFE_INTEGER / 5 || 5 * num > Number.MAX_SAFE_INTEGER - addval) {
-          console.error('Overflow computing numbers in compressed proof of ' + label);
+          this.error('Overflow computing numbers in compressed proof of ' + label);
           return null;
         }
 
@@ -518,7 +534,7 @@ export class CheckMM extends State {
         justgotnum = false;
       } else { // It must be Z
         if (!justgotnum) {
-          console.error('Stray Z found in compressed proof of ' + label);
+          this.error('Stray Z found in compressed proof of ' + label);
           return null;
         }
 
@@ -528,7 +544,7 @@ export class CheckMM extends State {
     }
 
     if (num !== 0) {
-      console.error('Compressed proof of theorem ' + label + ' ends in unfinished number');
+      this.error('Compressed proof of theorem ' + label + ' ends in unfinished number');
       return null;
     }
 
@@ -538,15 +554,15 @@ export class CheckMM extends State {
   // Subroutine for proof verification. Verify a proof step referencing an
   // assertion (i.e., not a hypothesis).
   verifyassertionref(thlabel: string, reflabel: string, stack: Expression[]): Expression[] {
-    const assertion: Assertion = this.assertions[reflabel];
+    const assertion: Assertion = this.state.assertions[reflabel];
 
     if (!assertion) {
-      console.error('In proof of theorem ' + thlabel + ' assertion ' + reflabel + ' is undefined');
+      this.error('In proof of theorem ' + thlabel + ' assertion ' + reflabel + ' is undefined');
       return null;
     }
 
     if (stack.length < assertion.hypotheses.length) {
-      console.error('In proof of theorem ' + thlabel + ' not enough items found on stack');
+      this.error('In proof of theorem ' + thlabel + ' not enough items found on stack');
       return null;
     }
 
@@ -556,17 +572,17 @@ export class CheckMM extends State {
 
     // Determine substitutions and check that we can unify
     for (let i = 0; i < assertion.hypotheses.length; ++i) {
-      const hypothesis: Hypothesis = this.hypotheses[assertion.hypotheses[i]];
+      const hypothesis: Hypothesis = this.state.hypotheses[assertion.hypotheses[i]];
 
       if (!hypothesis) {
-        console.error('In proof of theorem ' + thlabel + ' hypothesis ' + assertion.hypotheses[i] + ' is undefined');
+        this.error('In proof of theorem ' + thlabel + ' hypothesis ' + assertion.hypotheses[i] + ' is undefined');
         return null;
       }
 
       if (hypothesis.second) {
         // Floating hypothesis of the referenced assertion
         if (hypothesis.first[0] !== stack[base + i][0]) {
-          console.error('In proof of theorem ' + thlabel + ' unification failed');
+          this.error('In proof of theorem ' + thlabel + ' unification failed');
           return null;
         }
 
@@ -576,7 +592,7 @@ export class CheckMM extends State {
         // Essential hypothesis
         const dest: Expression = this.makesubstitution(hypothesis.first, substitutions);
         if (!arraysequal(dest, stack[base + i])) {
-          console.error('In proof of theorem ' + thlabel + ' unification failed');
+          this.error('In proof of theorem ' + thlabel + ' unification failed');
           return null;
         }
       }
@@ -592,14 +608,14 @@ export class CheckMM extends State {
 
       const exp1vars: string[] = [];
       for (let nExp1 = 0; nExp1 < exp1.length; ++nExp1) {
-        if (this.variables.has(exp1[nExp1])) {
+        if (this.state.variables.has(exp1[nExp1])) {
           exp1vars.push(exp1[nExp1]);
         }
       }
 
       const exp2vars: string[] = [];
       for (let nExp2 = 0; nExp2 < exp2.length; ++nExp2) {
-        if (this.variables.has(exp2[nExp2])) {
+        if (this.state.variables.has(exp2[nExp2])) {
           exp2vars.push(exp2[nExp2]);
         }
       }
@@ -607,7 +623,7 @@ export class CheckMM extends State {
       for (let nExp1 = 0; nExp1 < exp1vars.length; ++nExp1) {
         for (let nExp2 = 0; nExp2 < exp2vars.length; ++nExp2) {
           if (!this.isdvr(exp1vars[nExp1], exp2vars[nExp2])) {
-            console.error('In proof of theorem ' + thlabel + ' disjoint variable restriction violated');
+            this.error('In proof of theorem ' + thlabel + ' disjoint variable restriction violated');
             return null;
           }
         }
@@ -626,7 +642,7 @@ export class CheckMM extends State {
     let stack: Expression[] = [];
     for (let n = 0; n < proof.length; ++n) {
       // If step is a hypothesis, just push it onto the stack.
-      const hyp: Hypothesis = this.hypotheses[proof[n]];
+      const hyp: Hypothesis = this.state.hypotheses[proof[n]];
       if (hyp) {
         stack.push(hyp.first);
         continue;
@@ -640,12 +656,12 @@ export class CheckMM extends State {
     }
 
     if (stack.length !== 1) {
-      console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
+      this.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
       return false;
     }
 
     if (!arraysequal(stack[0], theorem.expression)) {
-      console.error('Proof of theorem ' + label + ' proves wrong statement');
+      this.error('Proof of theorem ' + label + ' proves wrong statement');
       return false;
     }
 
@@ -669,13 +685,13 @@ export class CheckMM extends State {
 
       // If step is a mandatory hypothesis, just push it onto the stack.
       if (proofnumbers[n] <= mandhypt) {
-        stack.push(this.hypotheses[theorem.hypotheses[proofnumbers[n] - 1]].first);
+        stack.push(this.state.hypotheses[theorem.hypotheses[proofnumbers[n] - 1]].first);
       } else if (proofnumbers[n] <= labelt) {
         const proofstep: string = labels[proofnumbers[n] - mandhypt - 1];
 
         // If step is a (non-mandatory) hypothesis,
         // just push it onto the stack.
-        const hyp: Hypothesis = this.hypotheses[proofstep];
+        const hyp: Hypothesis = this.state.hypotheses[proofstep];
         if (hyp) {
           stack.push(hyp.first);
           continue;
@@ -688,7 +704,7 @@ export class CheckMM extends State {
         }
       } else { // Must refer to saved step
         if (proofnumbers[n] > labelt + savedsteps.length) {
-          console.error('Number in compressed proof of ' + label + ' is too high');
+          this.error('Number in compressed proof of ' + label + ' is too high');
           return false;
         }
 
@@ -697,12 +713,12 @@ export class CheckMM extends State {
     }
 
     if (stack.length !== 1) {
-      console.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
+      this.error('Proof of theorem ' + label + ' does not end with only one item on the stack');
       return false;
     }
 
     if (!arraysequal(stack[0], theorem.expression)) {
-      console.error('Proof of theorem ' + label + ' proves wrong statement');
+      this.error('Proof of theorem ' + label + ' proves wrong statement');
       return false;
     }
 
@@ -720,79 +736,79 @@ export class CheckMM extends State {
 
     // Now for the proof
 
-    if (!this.tokens.length) {
-      console.error('Unfinished $p statement ' + label);
+    if (!this.state.tokens.length) {
+      this.error('Unfinished $p statement ' + label);
       return false;
     }
 
-    if (this.tokens[0] === '(') {
+    if (this.state.tokens[0] === '(') {
       // Compressed proof
-      this.tokens.shift();
+      this.state.tokens.shift();
 
       // Get labels
 
       const labels: string[] = [];
 
-      while (this.tokens.length) {
-        const token: string = this.tokens[0];
+      while (this.state.tokens.length) {
+        const token: string = this.state.tokens[0];
         if (token === ')') {
           break;
         }
 
-        this.tokens.shift();
+        this.state.tokens.shift();
         labels.push(token);
         if (token === label) {
-          console.error('Proof of theorem ' + label + ' refers to itself');
+          this.error('Proof of theorem ' + label + ' refers to itself');
           return false;
         } else if (assertion.hypotheses.find((value) => value === token) !== undefined) {
-          console.error('Compressed proof of theorem ' + label + ' has mandatory hypothesis ' + token + ' in label list');
+          this.error('Compressed proof of theorem ' + label + ' has mandatory hypothesis ' + token + ' in label list');
           return false;
-        } else if (!this.assertions[token] && !this.isactivehyp(token)) {
-          console.error('Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement');
+        } else if (!this.state.assertions[token] && !this.isactivehyp(token)) {
+          this.error('Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement');
           return false;
         }
       }
 
-      if (!this.tokens.length) {
-        console.error('Unfinished $p statement ' + label);
+      if (!this.state.tokens.length) {
+        this.error('Unfinished $p statement ' + label);
         return false;
       }
 
-      this.tokens.shift(); // Discard ) token
+      this.state.tokens.shift(); // Discard ) token
 
       // Get proof steps
 
       let proof: string = '';
-      while (this.tokens.length) {
-        const token = this.tokens[0];
+      while (this.state.tokens.length) {
+        const token = this.state.tokens[0];
 
         if (token === '$.') {
           break;
         }
 
-        this.tokens.shift();
+        this.state.tokens.shift();
 
         proof += token;
         if (!this.containsonlyupperorq(token)) {
-          console.error('Bogus character found in compressed proof of ' + label);
+          this.error('Bogus character found in compressed proof of ' + label);
           return false;
         }
       }
 
-      if (!this.tokens.length) {
-        console.error('Unfinished $p statement ' + label);
+      if (!this.state.tokens.length) {
+        this.error('Unfinished $p statement ' + label);
         return false;
       }
 
       if (!proof.length) {
-        console.error('Theorem ' + label + ' has no proof');
+        this.error('Theorem ' + label + ' has no proof');
         return false;
       }
 
-      this.tokens.shift(); // Discard $. token
+      this.state.tokens.shift(); // Discard $. token
 
       if (proof.indexOf('?') !==  -1) {
-        console.error('Warning: Proof of theorem ' + label + ' is incomplete');
+        this.error('Warning: Proof of theorem ' + label + ' is incomplete');
         return true; // Continue processing file
       }
 
@@ -809,40 +825,40 @@ export class CheckMM extends State {
       // Regular (uncompressed proof)
       const proof: string[] = [];
       let incomplete = false;
-      while (this.tokens.length) {
-        const token: string = this.tokens[0];
+      while (this.state.tokens.length) {
+        const token: string = this.state.tokens[0];
 
         if (token === '$.') {
           break;
         }
 
-        this.tokens.shift();
+        this.state.tokens.shift();
         proof.push(token);
         if (token === '?') {
           incomplete = true;
         } else if (token === label) {
-          console.error('Proof of theorem ' + label + ' refers to itself');
+          this.error('Proof of theorem ' + label + ' refers to itself');
           return false;
-        } else if (!this.assertions[token] && !this.isactivehyp(token)) {
-          console.error('Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement');
+        } else if (!this.state.assertions[token] && !this.isactivehyp(token)) {
+          this.error('Proof of theorem ' + label + ' refers to ' + token + ' which is not an active statement');
           return false;
         }
       }
 
-      if (!this.tokens.length) {
-        console.error('Unfinished $p statement ' + label);
+      if (!this.state.tokens.length) {
+        this.error('Unfinished $p statement ' + label);
         return false;
       }
 
       if (!proof.length) {
-        console.error('Theorem ' + label + ' has no proof');
+        this.error('Theorem ' + label + ' has no proof');
         return false;
       }
 
-      this.tokens.shift(); // Discard $. token
+      this.state.tokens.shift(); // Discard $. token
 
       if (incomplete) {
-        console.error('Warning: Proof of theorem ' + label + ' is incomplete');
+        this.error('Warning: Proof of theorem ' + label + ' is incomplete');
         return true; // Continue processing file
       }
 
@@ -862,12 +878,12 @@ export class CheckMM extends State {
     }
 
     // Create new essential hypothesis
-    this.hypotheses[label] = {
+    this.state.hypotheses[label] = {
       first: newhyp,
       second: false
     };
 
-    this.scopes[this.scopes.length - 1].activehyp.push(label);
+    this.state.scopes[this.state.scopes.length - 1].activehyp.push(label);
     return true;
   }
 
@@ -885,90 +901,90 @@ export class CheckMM extends State {
 
   // Parse $f statement. Return true iff okay.
   parsef(label: string): boolean {
-    if (!this.tokens.length) {
-      console.error('Unfinished $f statement' + label);
+    if (!this.state.tokens.length) {
+      this.error('Unfinished $f statement' + label);
       return false;
     }
 
-    const type: string = this.tokens[0];
+    const type: string = this.state.tokens[0];
 
-    if (this.constants.find((value) => value === type) === undefined) {
-      console.error('First symbol in $f statement ' + label + ' is ' + type + ' which is not a constant');
+    if (this.state.constants.find((value) => value === type) === undefined) {
+      this.error('First symbol in $f statement ' + label + ' is ' + type + ' which is not a constant');
       return false;
     }
 
-    this.tokens.shift();
+    this.state.tokens.shift();
 
-    if (!this.tokens.length) {
-      console.error('Unfinished $f statement' + label);
+    if (!this.state.tokens.length) {
+      this.error('Unfinished $f statement' + label);
       return false;
     }
 
-    const variable: string = this.tokens[0];
+    const variable: string = this.state.tokens[0];
     if (!this.isactivevariable(variable)) {
-      console.error('Second symbol in $f statement ' + label + ' is ' + variable + ' which is not an active variable');
+      this.error('Second symbol in $f statement ' + label + ' is ' + variable + ' which is not an active variable');
       return false;
     }
     if (this.getfloatinghyp(variable).length) {
-      console.error('The variable ' + variable + ' appears in a second $f statement ' + label);
+      this.error('The variable ' + variable + ' appears in a second $f statement ' + label);
       return false;
     }
 
-    this.tokens.shift();
+    this.state.tokens.shift();
 
-    if (!this.tokens.length) {
-      console.error('Unfinished $f statement' + label);
+    if (!this.state.tokens.length) {
+      this.error('Unfinished $f statement' + label);
       return false;
     }
 
-    if (this.tokens[0] !== '$.') {
-      console.error('Expected end of $f statement ' + label + ' but found ' + this.tokens[0]);
+    if (this.state.tokens[0] !== '$.') {
+      this.error('Expected end of $f statement ' + label + ' but found ' + this.state.tokens[0]);
       return false;
     }
 
-    this.tokens.shift(); // Discard $. token
+    this.state.tokens.shift(); // Discard $. token
 
     // Create new floating hypothesis
     const newhyp: Expression = [];
     newhyp.push(type);
     newhyp.push(variable);
-    this.hypotheses[label] = {
+    this.state.hypotheses[label] = {
       first: newhyp,
       second: true
     };
-    this.scopes[this.scopes.length - 1].activehyp.push(label);
-    this.scopes[this.scopes.length - 1].floatinghyp[variable] = label;
+    this.state.scopes[this.state.scopes.length - 1].activehyp.push(label);
+    this.state.scopes[this.state.scopes.length - 1].floatinghyp[variable] = label;
     return true;
   }
 
   // Parse labeled statement. Return true iff okay.
   parselabel(label: string): boolean {
-    if (this.constants.find((value) => value === label) !== undefined) {
-      console.error('Attempt to reuse constant ' + label + ' as a label');
+    if (this.state.constants.find((value) => value === label) !== undefined) {
+      this.error('Attempt to reuse constant ' + label + ' as a label');
       return false;
     }
 
-    if (this.variables.has(label)) {
-      console.error('Attempt to reuse variable ' + label + ' as a label');
+    if (this.state.variables.has(label)) {
+      this.error('Attempt to reuse variable ' + label + ' as a label');
       return false;
     }
 
     if (this.labelused(label)) {
-      console.error('Attempt to reuse label ' + label);
+      this.error('Attempt to reuse label ' + label);
       return false;
     }
 
-    if (!this.tokens.length) {
-      console.error('Unfinished labeled statement');
+    if (!this.state.tokens.length) {
+      this.error('Unfinished labeled statement');
       return false;
     }
 
-    const type: string = this.tokens.shift();
+    const type: string = this.state.tokens.shift();
 
     let okay = true;
     if (type === '$p') {
       okay = this.parsep(label);
-      ++this.nProofCount;
+      ++this.state.nProofCount;
     } else if (type === '$e') {
       okay = this.parsee(label);
     } else if (type === '$a') {
@@ -976,7 +992,7 @@ export class CheckMM extends State {
     } else if (type === '$f') {
       okay = this.parsef(label);
     } else {
-      console.error('Unexpected token ' + type + ' encountered');
+      this.error('Unexpected token ' + type + ' encountered');
       return false;
     }
 
@@ -986,93 +1002,93 @@ export class CheckMM extends State {
   parsed(): boolean {
     const dvars: Set<string> = new Set<string>();
 
-    while (this.tokens.length) {
-      const token: string = this.tokens[0];
+    while (this.state.tokens.length) {
+      const token: string = this.state.tokens[0];
       if (token === '$.') {
         break;
       }
 
-      this.tokens.shift();
+      this.state.tokens.shift();
 
       if (!this.isactivevariable(token)) {
-        console.error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
+        this.error('Token ' + token + ' is not an active variable, ' + 'but was found in a $d statement');
         return false;
       }
 
       if (dvars.has(token)) {
-        console.error('$d statement mentions ' + token + ' twice');
+        this.error('$d statement mentions ' + token + ' twice');
         return false;
       }
 
       dvars.add(token);
     }
 
-    if (!this.tokens.length) {
-      console.error('Unterminated $d statement');
+    if (!this.state.tokens.length) {
+      this.error('Unterminated $d statement');
       return false;
     }
 
     if (dvars.size < 2) {
-      console.error('Not enough items in $d statement');
+      this.error('Not enough items in $d statement');
       return false;
     }
 
     // Record it
-    this.scopes[this.scopes.length - 1].disjvars.push(dvars);
+    this.state.scopes[this.state.scopes.length - 1].disjvars.push(dvars);
 
-    this.tokens.shift(); // Discard $. token
+    this.state.tokens.shift(); // Discard $. token
 
     return true;
   }
 
   // Parse $c statement. Return true iff okay.
   parsec(): boolean {
-    if (this.scopes.length > 1) {
-      console.error('$c statement occurs in inner block');
+    if (this.state.scopes.length > 1) {
+      this.error('$c statement occurs in inner block');
       return false;
     }
 
     let listempty = true;
-    while (this.tokens.length) {
-      const token = this.tokens[0];
+    while (this.state.tokens.length) {
+      const token = this.state.tokens[0];
 
       if (token === '$.') {
         break;
       }
 
-      this.tokens.shift();
+      this.state.tokens.shift();
       listempty = false;
 
       if (!this.ismathsymboltoken(token)) {
-        console.error('Attempt to declare ' + token + ' as a constant');
+        this.error('Attempt to declare ' + token + ' as a constant');
         return false;
       }
-      if (this.variables.has(token)) {
-        console.error('Attempt to redeclare variable ' + token + ' as a constant');
+      if (this.state.variables.has(token)) {
+        this.error('Attempt to redeclare variable ' + token + ' as a constant');
         return false;
       }
       if (this.labelused(token)) {
-        console.error('Attempt to reuse label ' + token + ' as a constant');
+        this.error('Attempt to reuse label ' + token + ' as a constant');
         return false;
       }
-      if (this.constants.find((value) => value === token) !== undefined) {
-        console.error('Attempt to redeclare constant ' + token);
+      if (this.state.constants.find((value) => value === token) !== undefined) {
+        this.error('Attempt to redeclare constant ' + token);
         return false;
       }
-      this.constants.push(token);
+      this.state.constants.push(token);
     }
 
-    if (!this.tokens.length) {
-      console.error('Unterminated $c statement');
+    if (!this.state.tokens.length) {
+      this.error('Unterminated $c statement');
       return false;
     }
 
     if (listempty) {
-      console.error('Unterminated $c statement');
+      this.error('Unterminated $c statement');
       return false;
     }
 
-    this.tokens.shift(); // Discard $. token
+    this.state.tokens.shift(); // Discard $. token
 
     return true;
   }
@@ -1080,57 +1096,57 @@ export class CheckMM extends State {
   // Parse $v statement. Return true iff okay.
   parsev(): boolean {
     let listempty = true;
-    while (this.tokens.length) {
-      const token: string = this.tokens[0];
+    while (this.state.tokens.length) {
+      const token: string = this.state.tokens[0];
 
       if (token === '$.') {
         break;
       }
 
-      this.tokens.shift();
+      this.state.tokens.shift();
       listempty = false;
 
       if (!this.ismathsymboltoken(token)) {
-        console.error('Attempt to declare ' + token + ' as a variable');
+        this.error('Attempt to declare ' + token + ' as a variable');
         return false;
       }
-      if (this.constants.find((value) => value === token) !== undefined) {
-        console.error('Attempt to redeclare constant ' + token + ' as a variable');
+      if (this.state.constants.find((value) => value === token) !== undefined) {
+        this.error('Attempt to redeclare constant ' + token + ' as a variable');
         return false;
       }
       if (this.labelused(token)) {
-        console.error('Attempt to reuse label ' + token + ' as a variable');
+        this.error('Attempt to reuse label ' + token + ' as a variable');
         return false;
       }
       if (this.isactivevariable(token)) {
-        console.error('Attempt to redeclare active variable ' + token);
+        this.error('Attempt to redeclare active variable ' + token);
         return false;
       }
-      this.variables.add(token);
-      this.scopes[this.scopes.length - 1].activevariables.add(token);
+      this.state.variables.add(token);
+      this.state.scopes[this.state.scopes.length - 1].activevariables.add(token);
     }
 
-    if (!this.tokens.length) {
-      console.error('Unterminated $v statement');
+    if (!this.state.tokens.length) {
+      this.error('Unterminated $v statement');
       return false;
     }
 
     if (listempty) {
-      console.error('Empty $v statement');
+      this.error('Empty $v statement');
       return false;
     }
 
-    this.tokens.shift(); // Discard $. token
+    this.state.tokens.shift(); // Discard $. token
 
     return true;
   }
 
   checkmm(): boolean {
 
-    this.scopes.push(new Scope());
+    this.state.scopes.push(new Scope());
 
-    while (this.tokens.length) {
-      const token: string = this.tokens.shift();
+    while (this.state.tokens.length) {
+      const token: string = this.state.tokens.shift();
 
       let okay = true;
 
@@ -1139,11 +1155,11 @@ export class CheckMM extends State {
       } else if (token === '$d') {
         okay = this.parsed();
       } else if (token === '${') {
-        this.scopes.push(new Scope());
+        this.state.scopes.push(new Scope());
       } else if (token === '$}') {
-        this.scopes.pop();
-        if (!this.scopes.length) {
-          console.error('$} without corresponding ${');
+        this.state.scopes.pop();
+        if (!this.state.scopes.length) {
+          this.error('$} without corresponding ${');
           return false;
         }
       } else if (token === '$c') {
@@ -1151,26 +1167,26 @@ export class CheckMM extends State {
       } else if (token === '$v') {
         okay = this.parsev();
       } else {
-        console.error('Unexpected token ' + token + ' encountered');
+        this.error('Unexpected token ' + token + ' encountered');
         return false;
       }
       if (!okay) {
         return false;
       }
 
-      if (this.nProofCount >= this.nProofLimit) {
-        console.log('Proof limit reached');
-        console.log('Successfully verified ' + this.nProofCount + ' proofs');
+      if (this.state.nProofCount >= this.state.nProofLimit) {
+        this.log('Proof limit reached');
+        this.log('Successfully verified ' + this.state.nProofCount + ' proofs');
         return true;
       }
     }
 
-    if (this.scopes.length > 1) {
-      console.error('${ without corresponding $}');
+    if (this.state.scopes.length > 1) {
+      this.error('${ without corresponding $}');
       return false;
     }
 
-    console.log('Successfully verified ' + this.nProofCount + ' proofs\n');
+    this.log('Successfully verified ' + this.state.nProofCount + ' proofs\n');
     return true;
   }
 }
@@ -1184,15 +1200,16 @@ function main(argv: string[]): number {
   if (argv.length === 3) {
     const newProofLimit = parseInt(argv[2], 10);
     if (newProofLimit) {
-      checkmm.nProofLimit = newProofLimit;
+      checkmm.setProofLimit(newProofLimit);
     }  else {
-      console.error('Invalid proof limit' + argv[2]);
+      checkmm.error('Invalid proof limit' + argv[2]);
     }
     argv.pop();
   }
 
   if (argv.length !== 2) {
-    console.error('Syntax: node checkmm.js <filename> [<proof-limit>]');
+    checkmm.error('Syntax: node checkmm.js <filename> [<proof-limit>]');
+    console.error(checkmm.getErrors());
     return EXIT_FAILURE;
   }
 
@@ -1200,10 +1217,20 @@ function main(argv: string[]): number {
 
   let okay: boolean = checkmm.readtokens(argv[1]);
   if (!okay) {
+    console.error(checkmm.getErrors());
     return EXIT_FAILURE;
   }
 
   okay = checkmm.checkmm();
+
+  if (checkmm.getLogs().length) {
+    console.log(checkmm.getLogs());
+  }
+
+  if (checkmm.getErrors().length) {
+    console.error(checkmm.getErrors());
+  }
+
   return okay ? 0 : EXIT_FAILURE;
 }
 

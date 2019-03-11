@@ -4,13 +4,13 @@ export class CheckMMex extends CheckMM {
 
   readTokensAsync(url: string, callback: (error: string) => void): void {
 
-    const alreadyencountered: boolean = this.mmFileNames.has(url);
+    const alreadyencountered: boolean = this.state.mmFileNames.has(url);
     if (alreadyencountered) {
       callback('');
       return;
     }
 
-    this.mmFileNames.add(url);
+    this.state.mmFileNames.add(url);
 
     fetch(url).then((response: Response) => {
       if (!response.ok) {
@@ -78,7 +78,7 @@ export class CheckMMex extends CheckMM {
               continue;
             }
 
-            this.tokens.push(token);
+            this.state.tokens.push(token);
           }
 
           if (incomment) {

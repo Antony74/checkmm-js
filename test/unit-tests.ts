@@ -67,10 +67,6 @@ describe('checkmm-js', () => {
 
     const checkmm = new CheckMM();
 
-    const old = console.error;
-    let errors = 0;
-    console.error = () => ++errors;
-
     let input = 'hello world';
     let token = '';
 
@@ -82,21 +78,20 @@ describe('checkmm-js', () => {
     expect(token).to.equal('');
     ({token, input} = checkmm.nexttoken(input));
     expect(token).to.equal('');
-    expect(errors).to.equal(0);
+    expect(checkmm.getErrors()).to.equal('');
 
     input = String.fromCharCode(127);
     ({token, input} = checkmm.nexttoken(input));
     expect(token).to.equal('');
-    expect(errors).to.equal(1);
+    expect(checkmm.getErrors().trim().split('\n').length).to.equal(1);
 
-    console.error = old;
   });
 
   it('can read tokens', () => {
     const checkmm = new CheckMM();
     const okay: boolean = checkmm.readtokens(__dirname + '/../../node_modules/metamath-test/anatomy.mm');
     expect(okay).to.equal(true);
-    expect(checkmm.tokens.length).to.equal(60);
+    expect(checkmm.getState().tokens.length).to.equal(60);
   });
 
   it('can construct assertions with disjoint variables', () => {
@@ -431,9 +426,6 @@ describe('checkmm-js', () => {
 
   it('can verify demo0.mm', () => {
 
-    const old = console.log;
-    console.log = () => {};
-
     const checkmm = new CheckMM();
     checkmm.setState({});
 
@@ -442,14 +434,9 @@ describe('checkmm-js', () => {
 
     okay = checkmm.checkmm();
     expect(okay).to.equal(true);
-
-    console.log = old;
   });
 
   it('can asynchronously verify demo0.mm', (done) => {
-
-    const old = console.log;
-    console.log = () => {};
 
     const url = 'http://loclhost:8080/demo0.mm';
 
@@ -462,8 +449,6 @@ describe('checkmm-js', () => {
       expect(checkmm.getState().tokens.length).to.equal(166);
       const okay: boolean = checkmm.checkmm();
       expect(okay).to.equal(true);
-
-      console.log = old;
 
       done();
     });
