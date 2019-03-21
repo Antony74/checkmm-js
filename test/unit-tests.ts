@@ -444,10 +444,10 @@ describe('checkmm-js', () => {
 
     fetchMock.get('*', fs.readFileSync(__dirname + '/../../node_modules/metamath-test/demo0.mm', {encoding: 'utf8'}));
 
-    checkmm.readTokensAsync(url, (error: string) => {
-      expect(error).to.equal('');
+    checkmm.readTokensAsync(url, (okay: boolean, message: string) => {
+      expect(okay).to.equal(true);
       expect(checkmm.getState().tokens.length).to.equal(166);
-      const okay: boolean = checkmm.checkmm();
+      okay = checkmm.checkmm();
       expect(okay).to.equal(true);
 
       done();

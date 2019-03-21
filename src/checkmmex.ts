@@ -2,11 +2,19 @@ import {CheckMM} from './checkmm';
 
 export class CheckMMex extends CheckMM {
 
-  readTokensAsync(url: string, callback: (error: string) => void): void {
+  readTokensAsync(url: string, callback: (ok: boolean, message: string) => void): void {
+
+    const doCallback = () => {
+      if (this.state.errors.length) {
+        callback(false, this.state.errors);
+      } else {
+        callback(true, this.state.logs);
+      }
+    };
 
     const alreadyencountered: boolean = this.state.mmFileNames.has(url);
     if (alreadyencountered) {
-      callback('');
+      doCallback();
       return;
     }
 
@@ -14,7 +22,8 @@ export class CheckMMex extends CheckMM {
 
     fetch(url).then((response: Response) => {
       if (!response.ok) {
-        callback('Failed to fetch "' + url + '": ' + response.statusText);
+        this.error('Failed to fetch "' + url + '": ' + response.statusText);
+        doCallback();
       } else {
         response.text().then((input: string) => {
           let incomment = false;
@@ -34,11 +43,13 @@ export class CheckMMex extends CheckMM {
                 continue;
               }
               if (token.indexOf('$(') !== -1) {
-                callback('Characters $( found in a comment');
+                this.error('Characters $( found in a comment');
+                doCallback();
                 return;
               }
               if (token.indexOf('$)') !== -1) {
-                callback('Characters $) found in a comment');
+                this.error('Characters $) found in a comment');
+                doCallback();
                 return;
               }
               continue;
@@ -53,14 +64,16 @@ export class CheckMMex extends CheckMM {
             if (infileinclusion) {
               if (!newfilename.length) {
                 if (token.indexOf('$') !== -1) {
-                  callback('Filename ' + token + ' contains a $');
+                  this.error('Filename ' + token + ' contains a $');
+                  doCallback();
                   return;
                 }
                 newfilename = token;
                 continue;
               } else {
                 if (token !== '$]') {
-                  callback('Didn\'t find closing file inclusion delimiter');
+                  this.error('Didn\'t find closing file inclusion delimiter');
+                  doCallback();
                   return;
                 }
 
@@ -82,16 +95,18 @@ export class CheckMMex extends CheckMM {
           }
 
           if (incomment) {
-            callback('Unclosed comment');
+            this.error('Unclosed comment');
+            doCallback();
             return;
           }
 
           if (infileinclusion) {
-            callback('Unfinished file inclusion command');
+            this.error('Unfinished file inclusion command');
+            doCallback();
             return;
           }
 
-          callback('');
+          doCallback();
         });
       }
     });
