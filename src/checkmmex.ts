@@ -3,6 +3,10 @@ import {CheckMM} from './checkmm';
 export class CheckMMex extends CheckMM {
 
   readTokensAsync(url: string, callback: (ok: boolean, message: string) => void): void {
+    this.readTokensAsync2(url, '', callback);
+  }
+
+  private readTokensAsync2(url: string, input: string, callback: (ok: boolean, message: string) => void): void {
 
     const doCallback = () => {
       if (this.state.errors.length) {
@@ -25,7 +29,8 @@ export class CheckMMex extends CheckMM {
         this.error('Failed to fetch "' + url + '": ' + response.statusText);
         doCallback();
       } else {
-        response.text().then((input: string) => {
+        response.text().then((text: string) => {
+          input = text + input;
           let incomment = false;
           let infileinclusion = false;
           let newfilename: string = '';
@@ -77,13 +82,11 @@ export class CheckMMex extends CheckMM {
                   return;
                 }
 
-                const okay: boolean = this.readtokens(newfilename);
-                if (!okay) {
-                  return;
-                }
-                infileinclusion = false;
-                newfilename = '';
-                continue;
+                const pieces = url.split('/');
+                pieces.pop();
+                pieces.push(newfilename);
+                this.readTokensAsync2(pieces.join('/'), input, callback);
+                return;
               }
             }
             if (token === '$[') {
