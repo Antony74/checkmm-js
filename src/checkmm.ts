@@ -1176,7 +1176,11 @@ export class CheckMM {
 
       if (this.state.nProofCount >= this.state.nProofLimit) {
         this.log('Proof limit reached');
-        this.log('Successfully verified ' + this.state.nProofCount + ' proofs');
+        if (this.state.nProofCount === 1) {
+          this.log('Successfully verified 1 proof');
+        } else {
+          this.log('Successfully verified ' + this.state.nProofCount + ' proofs');
+        }
         return true;
       }
     }
@@ -1186,7 +1190,12 @@ export class CheckMM {
       return false;
     }
 
-    this.log('Successfully verified ' + this.state.nProofCount + ' proofs\n');
+    if (this.state.nProofCount === 1) {
+      this.log('Successfully verified 1 proof');
+    } else {
+      this.log('Successfully verified ' + this.state.nProofCount + ' proofs');
+    }
+
     return true;
   }
 }
