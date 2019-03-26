@@ -64,7 +64,7 @@ fs.readdir(pathToTests, (err: NodeJS.ErrnoException, files: string[]) => {
               done();
             });
 
-          }).timeout(120000);
+          }).timeout(600000);
 
         }
       });

@@ -1,4 +1,4 @@
-import {CheckMM} from './checkmm';
+import {CheckMM, Input} from './checkmm';
 
 export class CheckMMex extends CheckMM {
 
@@ -6,7 +6,7 @@ export class CheckMMex extends CheckMM {
     this.readTokensAsync2(url, '', callback);
   }
 
-  private readTokensAsync2(url: string, input: string, callback: (ok: boolean, message: string) => void): void {
+  private readTokensAsync2(url: string, existingInput: string, callback: (ok: boolean, message: string) => void): void {
 
     const doCallback = () => {
       if (this.state.errors.length) {
@@ -30,14 +30,14 @@ export class CheckMMex extends CheckMM {
         doCallback();
       } else {
         response.text().then((text: string) => {
-          input = text + input;
+          const input: Input = new Input(text + existingInput);
           let incomment = false;
           let infileinclusion = false;
           let newfilename: string = '';
 
           let token: string = '';
           while (true) {
-            ({token, input} = this.nexttoken(input));
+            token = this.nexttoken(input);
             if (!token.length) {
               break;
             }
@@ -85,7 +85,7 @@ export class CheckMMex extends CheckMM {
                 const pieces = url.split('/');
                 pieces.pop();
                 pieces.push(newfilename);
-                this.readTokensAsync2(pieces.join('/'), input, callback);
+                this.readTokensAsync2(pieces.join('/'), input.toString(), callback);
                 return;
               }
             }

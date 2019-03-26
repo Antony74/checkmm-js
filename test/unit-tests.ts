@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import {expect} from 'chai';
 import fetchMock from 'fetch-mock';
 
-import {Assertion, CheckMM, Expression, Scope, State, std} from '../src/checkmm';
+import {Assertion, CheckMM, Expression, Input, Scope, State, std} from '../src/checkmm';
 import { CheckMMex } from '../src/checkmmex';
 
 describe('checkmm-js', () => {
@@ -67,21 +67,21 @@ describe('checkmm-js', () => {
 
     const checkmm = new CheckMM();
 
-    let input = 'hello world';
+    let input: Input = new Input('hello world');
     let token = '';
 
-    ({token, input} = checkmm.nexttoken(input));
+    token = checkmm.nexttoken(input);
     expect(token).to.equal('hello');
-    ({token, input} = checkmm.nexttoken(input));
+    token = checkmm.nexttoken(input);
     expect(token).to.equal('world');
-    ({token, input} = checkmm.nexttoken(input));
+    token = checkmm.nexttoken(input);
     expect(token).to.equal('');
-    ({token, input} = checkmm.nexttoken(input));
+    token = checkmm.nexttoken(input);
     expect(token).to.equal('');
     expect(checkmm.getErrors()).to.equal('');
 
-    input = String.fromCharCode(127);
-    ({token, input} = checkmm.nexttoken(input));
+    input = new Input(String.fromCharCode(127));
+    token = checkmm.nexttoken(input);
     expect(token).to.equal('');
     expect(checkmm.getErrors().trim().split('\n').length).to.equal(1);
 

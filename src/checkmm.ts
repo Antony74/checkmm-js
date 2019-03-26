@@ -88,9 +88,31 @@ function arraysequal(arr1: any[], arr2: any[]): boolean {
   return true;
 }
 
-interface NextToken {
-  token: string;
-  input: string;
+export class Input {
+  private index = 0;
+
+  constructor(private data: string) {
+  }
+
+  char(): string {
+    return this.data.charAt(this.index);
+  }
+
+  length(): number {
+    return this.data.length - this.index;
+  }
+
+  next() {
+    ++this.index;
+  }
+
+  prev() {
+    --this.index;
+  }
+
+  toString(): string {
+    return this.data.slice(this.index);
+  }
 }
 
 export type Expression = string[];
@@ -259,27 +281,27 @@ export class CheckMM {
     return true;
   }
 
-  nexttoken(input: string): NextToken {
+  nexttoken(input: Input): string {
     let ch: string = null;
     let token: string = '';
 
     // Skip whitespace
-    while (input.length) {
-      ch = input[0];
-      input = input.slice(1);
+    while (input.length()) {
+      ch = input.char();
+      input.next();
       if (ch === null || !this.ismmws(ch)) {
         break;
       }
     }
 
     if (ch !== null) {
-      input = ch + input;
+      input.prev();
     }
 
     // Get token
-    while (input.length) {
-      ch = input[0];
-      input = input.slice(1);
+    while (input.length()) {
+      ch = input.char();
+      input.next();
 
       if (ch === null || this.ismmws(ch)) {
         break;
@@ -287,13 +309,13 @@ export class CheckMM {
 
       if (ch < '!' || ch > '~') {
         this.error('Invalid character read with code ' + ch.charCodeAt(0));
-        return {token: '', input: input};
+        return '';
       }
 
       token += ch;
     }
 
-    return {token: token, input: input};
+    return token;
   }
 
   readtokens(filename: string): boolean {
@@ -304,7 +326,7 @@ export class CheckMM {
 
     this.state.mmFileNames.add(filename);
 
-    let input = fs.readFileSync(filename, {encoding: 'utf8'});
+    const input: Input = new Input(fs.readFileSync(filename, {encoding: 'utf8'}));
 
     let incomment = false;
     let infileinclusion = false;
@@ -312,7 +334,7 @@ export class CheckMM {
 
     let token: string = '';
     while (true) {
-      ({token, input} = this.nexttoken(input));
+      token = this.nexttoken(input);
       if (!token.length) {
         break;
         }
