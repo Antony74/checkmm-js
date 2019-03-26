@@ -110,8 +110,14 @@ export class CheckMMex extends CheckMM {
           }
 
           doCallback();
+        }).catch((e) => {
+          this.error('Failed while fetching ' + url);
+          doCallback();
         });
       }
+    }).catch((e) => {
+      this.error('Failed to fetch ' + url);
+      doCallback();
     });
 
   }
