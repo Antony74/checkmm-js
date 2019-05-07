@@ -2318,7 +2318,7 @@ nanomatch@^1.2.9:
 
 "napa@https://github.com/Antony74/napa.git":
   version "3.0.0"
-  resolved "https://github.com/Antony74/napa.git#3b65fb92d1bc7d13dd1a2fdfb5e1fc8ada6f13ea"
+  resolved "https://github.com/Antony74/napa.git#92fed6f19307e32c4397b3a46c3dc9f2cbd44c1f"
   dependencies:
     download "^6.2.2"
     extend "^3.0.1"
