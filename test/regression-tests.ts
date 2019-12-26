@@ -1,9 +1,10 @@
 import {expect} from 'chai';
 import * as fs from 'fs';
 import * as child_process from 'child_process';
+import * as path from 'path';
 
 const pathToTests = __dirname + '/../../node_modules/metamath-test';
-const defaultVerifier = process.env.verifier.trim();
+const defaultVerifier = typeof(process.env.verifier) === 'string' ? process.env.verifier.trim() : 'js';
 
 // Change this function to run the particular MetaMath verifier you wish to test
 export function runTest(filename: string, verifier: string, done: (succeeded: boolean) => void) {
@@ -49,23 +50,11 @@ function parseFilename(filename: string): ParsedFilename {
 
 function isFastTest(filename) {
   // Restrict which tests are run until I can improve performance
-  if (filename !== 'anatomy-bad1.mm'
-  &&  filename !== 'anatomy-bad2.mm'
-  &&  filename !== 'anatomy-bad3.mm'
-  &&  filename !== 'anatomy.mm'
-  &&  filename !== 'big-unifier-bad1.mm'
-  &&  filename !== 'big-unifier-bad2.mm'
-  &&  filename !== 'big-unifier-bad3.mm'
-  &&  filename !== 'big-unifier.mm'
-  &&  filename !== 'demo0-bad1.mm'
-  &&  filename !== 'demo0-includee.mm'
-  &&  filename !== 'demo0-includer.mm'
-  &&  filename !== 'demo0.mm'
-  &&  filename !== 'emptyline.mm'
-  &&  filename !== 'hol.mm') {
-    return false;
+  if (filename !== 'set.mm'
+  &&  filename !== 'set.2010-08-29.mm') {
+    return true;
   } else {
-  return true;
+    return false;
   }
 }
 
@@ -87,36 +76,40 @@ export function getTests(callback: (err: NodeJS.ErrnoException, files: ParsedFil
 
 }
 
-getTests((err: NodeJS.ErrnoException, files: ParsedFilename[]) => {
+// Are we being run in mocha?
+if (path.basename(process.argv[1]) === 'mocha') {
 
-  if (err) {
-    console.log(err.message);
-    process.exit(1);
-  } else {
-    describe('metamath-test', () => {
+  getTests((err: NodeJS.ErrnoException, files: ParsedFilename[]) => {
 
-      files.forEach((parsedFilename) => {
+    if (err) {
+      console.log(err.message);
+      process.exit(1);
+    } else {
+      describe('metamath-test', () => {
 
-        const filename = parsedFilename.filename;
+        files.forEach((parsedFilename) => {
 
-        it(filename, (done) => {
+          const filename = parsedFilename.filename;
 
-          runTest(
-            filename,
-            defaultVerifier,
-            (succeeded) => {
-              expect(succeeded).to.equal(parsedFilename.expectedPass);
-              done();
-            }
-          );
+          it(filename, (done) => {
 
-        }).timeout(600000);
+            runTest(
+              filename,
+              defaultVerifier,
+              (succeeded) => {
+                expect(succeeded).to.equal(parsedFilename.expectedPass);
+                done();
+              }
+            );
 
+          }).timeout(600000);
+
+        });
       });
-    });
 
-    run();
+      run();
 
-  }
-});
+    }
+  });
+}
 
