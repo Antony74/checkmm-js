@@ -3,13 +3,14 @@ import * as fs from 'fs';
 import * as child_process from 'child_process';
 
 const pathToTests = __dirname + '/../../node_modules/metamath-test';
+const defaultVerifier = process.env.verifier.trim();
 
 // Change this function to run the particular MetaMath verifier you wish to test
-export function runTest(filename: string, done: (succeeded: boolean) => void) {
+export function runTest(filename: string, verifier: string, done: (succeeded: boolean) => void) {
 
   let cmd: string = 'node ' + __dirname + '/../src/checkmm.js ' + filename;
 
-  if (process.env.verifier.trim() === 'cpp') {
+  if (verifier === 'cpp') {
     cmd = __dirname + '/../../../graphmm/vc/x64/Release/graphmm.exe ' + filename;
   }
 
@@ -102,6 +103,7 @@ getTests((err: NodeJS.ErrnoException, files: ParsedFilename[]) => {
 
           runTest(
             filename,
+            defaultVerifier,
             (succeeded) => {
               expect(succeeded).to.equal(parsedFilename.expectedPass);
               done();
