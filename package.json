@@ -19,7 +19,7 @@
     "chai": "^4.2.0",
     "fetch-mock": "^7.3.0",
     "mocha": "^5.2.0",
-    "napa": "https://github.com/Antony74/napa.git",
+    "napa": "^3.0.0",
     "regression": "^2.0.1",
     "ts-loader": "^5.3.3",
     "tslint": "^5.11.0",

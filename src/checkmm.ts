@@ -802,7 +802,7 @@ export class CheckMM {
 
       let proof: string = '';
       while (this.state.tokens.length) {
-        const token = this.state.tokens[0];
+        const token: string = this.state.tokens[0];
 
         if (token === '$.') {
           break;
