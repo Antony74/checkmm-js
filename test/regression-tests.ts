@@ -2,8 +2,10 @@ import {expect} from 'chai';
 import * as fs from 'fs';
 import * as child_process from 'child_process';
 
+const pathToTests = __dirname + '/../../node_modules/metamath-test';
+
 // Change this function to run the particular MetaMath verifier you wish to test
-function runTest(cwd: string, filename: string, done: (succeeded: boolean) => void) {
+export function runTest(filename: string, done: (succeeded: boolean) => void) {
 
   let cmd: string = 'node ' + __dirname + '/../src/checkmm.js ' + filename;
 
@@ -11,12 +13,13 @@ function runTest(cwd: string, filename: string, done: (succeeded: boolean) => vo
     cmd = __dirname + '/../../../graphmm/vc/x64/Release/graphmm.exe ' + filename;
   }
 
-  child_process.exec(cmd, {cwd: cwd}, (err) => {
+  child_process.exec(cmd, {cwd: pathToTests}, (err) => {
     done(err === null);
   });
 }
 
 class ParsedFilename {
+  filename: string;
   isMM: boolean;
   expectedPass: boolean;
 }
@@ -36,59 +39,82 @@ function parseFilename(filename: string): ParsedFilename {
   const normalPassCriteria: boolean = (filename !== 'set-dist.mm');
 
   return {
+    filename: filename,
     isMM: (ext === 'mm'),
     expectedPass: (normalPassCriteria && expectedPass)
   };
 
 }
 
-const pathToTests = __dirname + '/../../node_modules/metamath-test';
+function isFastTest(filename) {
+  // Restrict which tests are run until I can improve performance
+  if (filename !== 'anatomy-bad1.mm'
+  &&  filename !== 'anatomy-bad2.mm'
+  &&  filename !== 'anatomy-bad3.mm'
+  &&  filename !== 'anatomy.mm'
+  &&  filename !== 'big-unifier-bad1.mm'
+  &&  filename !== 'big-unifier-bad2.mm'
+  &&  filename !== 'big-unifier-bad3.mm'
+  &&  filename !== 'big-unifier.mm'
+  &&  filename !== 'demo0-bad1.mm'
+  &&  filename !== 'demo0-includee.mm'
+  &&  filename !== 'demo0-includer.mm'
+  &&  filename !== 'demo0.mm'
+  &&  filename !== 'emptyline.mm'
+  &&  filename !== 'hol.mm') {
+    return false;
+  } else {
+  return true;
+  }
+}
 
-fs.readdir(pathToTests, (err: NodeJS.ErrnoException, files: string[]) => {
+export function getTests(callback: (err: NodeJS.ErrnoException, files: ParsedFilename[]) => void) {
+
+  fs.readdir(pathToTests, (err: NodeJS.ErrnoException, files: string[]) => {
+    if (err) {
+      callback(err, []);
+    } else {
+      callback(
+        null,
+        files
+          .filter(isFastTest)
+          .map((filename: string) => parseFilename(filename))
+          .filter((parsedFilename) => parsedFilename.isMM)
+      );
+    }
+  });
+
+}
+
+getTests((err: NodeJS.ErrnoException, files: ParsedFilename[]) => {
+
   if (err) {
     console.log(err.message);
     process.exit(1);
   } else {
     describe('metamath-test', () => {
 
-      files.forEach((filename: string) => {
+      files.forEach((parsedFilename) => {
 
-        // Restrict which tests are run until I can improve performance
-        if (filename !== 'anatomy-bad1.mm'
-        &&  filename !== 'anatomy-bad2.mm'
-        &&  filename !== 'anatomy-bad3.mm'
-        &&  filename !== 'anatomy.mm'
-        &&  filename !== 'big-unifier-bad1.mm'
-        &&  filename !== 'big-unifier-bad2.mm'
-        &&  filename !== 'big-unifier-bad3.mm'
-        &&  filename !== 'big-unifier.mm'
-        &&  filename !== 'demo0-bad1.mm'
-        &&  filename !== 'demo0-includee.mm'
-        &&  filename !== 'demo0-includer.mm'
-        &&  filename !== 'demo0.mm'
-        &&  filename !== 'emptyline.mm'
-        &&  filename !== 'hol.mm') {
-          return;
-        }
+        const filename = parsedFilename.filename;
 
-        const parsed: ParsedFilename = parseFilename(filename);
+        it(filename, (done) => {
 
-        if (parsed.isMM) {
-
-          it(filename, (done) => {
-
-            runTest(pathToTests, filename, (succeeded) => {
-              expect(succeeded).to.equal(parsed.expectedPass);
+          runTest(
+            filename,
+            (succeeded) => {
+              expect(succeeded).to.equal(parsedFilename.expectedPass);
               done();
-            });
+            }
+          );
 
-          }).timeout(600000);
+        }).timeout(600000);
 
-        }
       });
     });
 
     run();
+
   }
 });
 
